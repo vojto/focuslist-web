@@ -62,7 +62,7 @@ export default function FocusScreen() {
     collisionDetection,
     handleDragCancel,
     handleDragEnd,
-    handleDragOver,
+    handleDragMove,
     handleDragStart,
     sensors,
   } = useTaskDnd()
@@ -87,7 +87,7 @@ export default function FocusScreen() {
       collisionDetection={collisionDetection}
       sensors={sensors}
       onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
+      onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >

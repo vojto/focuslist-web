@@ -7,7 +7,7 @@ import {
   useSensors,
   type CollisionDetection,
   type DragEndEvent,
-  type DragOverEvent,
+  type DragMoveEvent,
   type DragStartEvent,
 } from "@dnd-kit/core"
 import { useRef, useState } from "react"
@@ -23,7 +23,7 @@ import type { ListId, TodoId } from "../store/schema"
 // matching how moveTodo inserts.
 function dropTarget(
   db: Db,
-  event: DragOverEvent | DragEndEvent,
+  event: DragMoveEvent | DragEndEvent,
 ): { listId: ListId; index?: number } | null {
   const { active, over } = event
   if (over === null) {
@@ -42,11 +42,16 @@ function dropTarget(
     if (index === -1) {
       return { listId }
     }
-    const draggedRect = active.rect.current.translated
+    // Pointer position = where the drag started + how far it has moved.
+    // (The active draggable's own rect is unreliable here: it re-measures
+    // from the placeholder, which itself moves as the todo re-homes.)
+    const { activatorEvent, delta } = event
+    const pointerY =
+      activatorEvent instanceof PointerEvent
+        ? activatorEvent.clientY + delta.y
+        : null
     const isBelowOverRow =
-      draggedRect !== null &&
-      draggedRect.top + draggedRect.height / 2 >
-        over.rect.top + over.rect.height / 2
+      pointerY !== null && pointerY > over.rect.top + over.rect.height / 2
     return { listId, index: index + (isBelowOverRow ? 1 : 0) }
   }
   if (db.store.hasRow("lists", overId)) {
@@ -80,15 +85,18 @@ export function useTaskDnd() {
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   )
 
-  // Prefer the todo row under the pointer over the pane droppable behind it.
-  // In a pane's padding (beside/above the rows), snap to the nearest row so
-  // the pointer's vertical position picks the slot — except below the last
-  // row, where the pane itself (= append) is the right target. Fall back to
-  // nearest-corner matching outside any droppable.
+  // Prefer the todo row under the pointer over the pane droppable behind it
+  // (never the dragged row itself). In a pane's padding (beside/above the
+  // rows), snap to the nearest row so the pointer's vertical position picks
+  // the slot — except below the last row, where the pane itself (= append) is
+  // the right target. Fall back to nearest-corner matching outside any
+  // droppable.
   const collisionDetection: CollisionDetection = (args) => {
     const withinPointer = pointerWithin(args)
-    const todoCollision = withinPointer.find(({ id }) =>
-      db.store.hasRow("todos", String(id)),
+    const todoCollision = withinPointer.find(
+      ({ id }) =>
+        String(id) !== String(args.active.id) &&
+        db.store.hasRow("todos", String(id)),
     )
     if (todoCollision !== undefined) {
       return [todoCollision]
@@ -118,32 +126,28 @@ export function useTaskDnd() {
     setActiveTodoId(String(event.active.id))
   }
 
-  // Cross-list re-homing happens live: the todo really changes lists
-  // mid-drag. Hovering within one list is previewed by SortableContext's
-  // transforms and committed in handleDragEnd.
-  const handleDragOver = (event: DragOverEvent) => {
+  // One code path: every pointer move commits the real order, whether the
+  // move is across lists or within one. (onDragMove, not onDragOver — the
+  // latter only fires when the hovered droppable changes, so it never sees
+  // the pointer crossing a row's midline.) The in-list placeholder row IS
+  // the drop preview, so mid-drag visuals and the drop can never disagree.
+  // Dropping has nothing left to do but seal the checkpoint.
+  const handleDragMove = (event: DragMoveEvent) => {
     const todoId = String(event.active.id)
-    if (event.over === null || String(event.over.id) === todoId) {
-      return
-    }
     const target = dropTarget(db, event)
-    if (
-      target === null ||
-      target.listId === db.store.getCell("todos", todoId, "listId")
-    ) {
+    if (target === null) {
       return
     }
-    moveTodo(db, todoId, target.listId, target.index)
+    const slice = db.indexes.getSliceRowIds("todosByList", target.listId)
+    const alreadyAtTarget =
+      db.store.getCell("todos", todoId, "listId") === target.listId &&
+      slice.indexOf(todoId) === (target.index ?? slice.length - 1)
+    if (!alreadyAtTarget) {
+      moveTodo(db, todoId, target.listId, target.index)
+    }
   }
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const todoId = String(event.active.id)
-    if (event.over !== null && String(event.over.id) !== todoId) {
-      const target = dropTarget(db, event)
-      if (target !== null) {
-        moveTodo(db, todoId, target.listId, target.index)
-      }
-    }
+  const handleDragEnd = () => {
     // Seals the whole drag as one undo step (no-op when nothing changed).
     checkpoints?.addCheckpoint("Move task")
     setActiveTodoId(null)
@@ -161,7 +165,7 @@ export function useTaskDnd() {
     collisionDetection,
     handleDragCancel,
     handleDragEnd,
-    handleDragOver,
+    handleDragMove,
     handleDragStart,
     sensors,
   }

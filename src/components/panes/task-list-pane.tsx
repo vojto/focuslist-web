@@ -1,5 +1,4 @@
 import { useDroppable } from "@dnd-kit/core"
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { useState } from "react"
 import { useCell, useDb, useSliceRowIds } from "../../store/hooks"
 import { addTodo } from "../../store/operations"
@@ -35,16 +34,11 @@ export default function TaskListPane({ listId }: { listId: ListId }) {
             <h1 className="text-2xl font-semibold tracking-tight">{name}</h1>
           </header>
 
-          <SortableContext
-            items={[...todoIds]}
-            strategy={verticalListSortingStrategy}
-          >
-            <ul className="space-y-2">
-              {todoIds.map((todoId) => (
-                <TaskRow key={todoId} showProject={isToday} todoId={todoId} />
-              ))}
-            </ul>
-          </SortableContext>
+          <ul className="space-y-2">
+            {todoIds.map((todoId) => (
+              <TaskRow key={todoId} showProject={isToday} todoId={todoId} />
+            ))}
+          </ul>
         </div>
       </div>
 

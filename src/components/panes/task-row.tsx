@@ -1,19 +1,19 @@
-import { useSortable } from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
-import type { CSSProperties } from "react"
+import { useDraggable, useDroppable } from "@dnd-kit/core"
 import {
   useCell,
   useDelRowCallback,
   useSetCellCallback,
 } from "../../store/hooks"
 import type { TodoId } from "../../store/schema"
+import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
 
 // The row's visual card. Rendered inside the sortable row, and also directly
 // inside the DragOverlay (overlay) — it reads by id, so both stay in sync.
 export function TaskRowCard({
   overlay = false,
   placeholder = false,
-  showProject = false,
+  // showProject is temporarily unused while the project badge is commented
+  // out below.
   todoId,
 }: {
   overlay?: boolean
@@ -23,8 +23,8 @@ export function TaskRowCard({
 }) {
   const title = useCell("todos", todoId, "title")
   const isCompleted = useCell("todos", todoId, "isCompleted") === true
-  const projectId = useCell("todos", todoId, "projectId")
-  const projectName = useCell("lists", projectId ?? "", "name")
+  // const projectId = useCell("todos", todoId, "projectId")
+  // const projectName = useCell("lists", projectId ?? "", "name")
   const toggleTodo = useSetCellCallback(
     "todos",
     todoId,
@@ -32,7 +32,6 @@ export function TaskRowCard({
     () => (wasCompleted) => !wasCompleted,
     [],
   )
-  const deleteTodo = useDelRowCallback("todos", todoId)
 
   if (title === undefined) {
     return null
@@ -62,20 +61,12 @@ export function TaskRowCard({
         }`}
       >
         {title}
-        {showProject && projectName !== undefined && (
+        {/* {showProject && projectName !== undefined && (
           <span className="ml-2 rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
             {projectName}
           </span>
-        )}
+        )} */}
       </span>
-      <button
-        aria-label={`Delete ${title}`}
-        className={`text-sm text-neutral-400 transition hover:text-red-600 ${contentClass}`}
-        onClick={deleteTodo}
-        type="button"
-      >
-        Delete
-      </button>
     </div>
   )
 }
@@ -87,32 +78,43 @@ export default function TaskRow({
   showProject?: boolean
   todoId: TodoId
 }) {
+  // A row is a draggable (you can pick it up) and a droppable (it can be
+  // hovered as a drop slot). The row itself never moves visually — while
+  // dragging, it renders as the placeholder gap and the DragOverlay shows the
+  // floating card. Every hover commits the real order, so the gap is always
+  // the true drop position.
   const {
     attributes,
     isDragging,
     listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ id: todoId })
-  const style: CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  }
+    setNodeRef: setDraggableRef,
+  } = useDraggable({ id: todoId })
+  const { setNodeRef: setDroppableRef } = useDroppable({ id: todoId })
+  const deleteTodo = useDelRowCallback("todos", todoId)
 
   return (
-    <li
-      ref={setNodeRef}
-      className="touch-none"
-      style={style}
-      {...attributes}
-      {...listeners}
+    <ContextMenu
+      trigger={
+        <li
+          ref={(node) => {
+            setDraggableRef(node)
+            setDroppableRef(node)
+          }}
+          className="touch-none"
+          {...attributes}
+          {...listeners}
+        >
+          <TaskRowCard
+            placeholder={isDragging}
+            showProject={showProject}
+            todoId={todoId}
+          />
+        </li>
+      }
     >
-      <TaskRowCard
-        placeholder={isDragging}
-        showProject={showProject}
-        todoId={todoId}
-      />
-    </li>
+      <ContextMenuItem danger onClick={deleteTodo}>
+        Delete
+      </ContextMenuItem>
+    </ContextMenu>
   )
 }

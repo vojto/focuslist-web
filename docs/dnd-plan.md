@@ -24,11 +24,16 @@ There is no preview state, no drag payloads, no rollback machinery.
 - **No drag data.** dnd-kit ids are store row ids. `over.id` is either a todo
   (`hasRow("todos", id)` → target = its `listId`, index = `indexOf` in that
   list's slice) or a pane's empty-area droppable (a list id → append).
-- **One mutation.** Cross-list re-homing writes `moveTodo` on dragOver;
-  same-list hovering is previewed by SortableContext's own transforms (writing
-  the store there too would fight them and jitter) and the final order is the
-  same `moveTodo` call on drop. Within-pane sorting isn't a feature, it falls
-  out.
+- **One code path, no second preview system.** Task rows are plain
+  draggables + droppables — deliberately NOT dnd-kit sortables. Every pointer
+  move (`onDragMove`, since `onDragOver` misses midline crossings within one
+  row) commits the real order via `moveTodo`, same list or cross list; the
+  in-list placeholder row IS the drop indicator, so mid-drag visuals and the
+  drop can never disagree. (SortableContext was tried first: its
+  transform-preview uses different slot semantics and fought the real moves —
+  wrong gap positions near pane edges.) Trade-off: rows snap instead of
+  sliding; FLIP animation is future polish. Slot semantics: above a row's
+  midline = before it, below = after it, below the last row = append.
 
 Note: the localStorage persister auto-saves mid-drag states; harmless locally
 (worst case a refresh mid-drag lands on the latest hover position).
@@ -45,13 +50,13 @@ for now) — future splits are changes to that array only.
 
 - One `DndContext` in `FocusScreen` wrapping both panes. (The sidebar's
   project-reorder context stays separate.)
-- Each `TaskListPane`: a `SortableContext` over its slice's row ids, plus a
+- Each `TaskListPane`: rows are `useDraggable` + `useDroppable`, plus a
   `useDroppable` (id = list id) on the task area for empty lists and
   below-the-last-row drops.
 - `useTaskDnd` holds only the active `todoId` and the pre-drag checkpoint id:
   - `onDragStart`: `addCheckpoint()`, set active.
-  - `onDragOver`: resolve target from `over.id`, call `moveTodo` (skip if
-    already there).
+  - `onDragMove`: resolve target from `over.id` + pointer-vs-midline, call
+    `moveTodo` (skip if already there).
   - `onDragEnd`: `addCheckpoint("Move task")`, clear active.
   - `onDragCancel`: `goTo(preDragCheckpointId)`, clear active.
 - `DragOverlay` shows the floating row (`<TaskRow todoId={activeId} />` styled
