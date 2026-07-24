@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import type { ListId, TaskList } from "../../store/tasks/types"
+import type { ListId, TaskList } from "../../types"
 import ProjectRowPreview from "./project-row-preview"
 
 export default function ProjectRow({

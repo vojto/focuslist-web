@@ -1,6 +1,6 @@
 import { useLocation, useRoute } from "wouter"
 import { projectPath, projectRoute, rootPath } from "../lib/routes"
-import type { ListId } from "../store/tasks/types"
+import type { ListId } from "../types"
 
 export function useSelectedProjectId(): ListId | undefined {
   const [match, params] = useRoute(projectRoute)

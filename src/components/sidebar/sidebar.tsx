@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useSelectProject } from "../../hooks/use-selected-project"
-import { useTasksStore } from "../../store/tasks/store"
+import { useTasksStore } from "../../stores/use-tasks-store"
 import ToolbarButton from "../../ui/toolbar-button"
 import NewProjectDialog from "./new-project-dialog"
 import ProjectList from "./project-list"

@@ -2,7 +2,7 @@ import { useState } from "react"
 import ProjectPane from "../components/panes/project-pane"
 import Sidebar from "../components/sidebar/sidebar"
 import TodayPane from "../components/panes/today-pane"
-import { useUiStore } from "../stores/ui-store"
+import { useUiStore } from "../stores/use-ui-store"
 import PaneSeparator from "../ui/pane-separator"
 
 const MIN_SIDEBAR_WIDTH = 176

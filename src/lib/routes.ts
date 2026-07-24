@@ -1,4 +1,4 @@
-import type { ListId } from "../store/tasks/types"
+import type { ListId } from "../types"
 
 export const projectRoute = "/projects/:id"
 

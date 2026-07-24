@@ -1,6 +1,9 @@
 import { useState } from "react"
-import { useListTodos, useTasksStore } from "../../store/tasks/store"
-import { TODAY_LIST_ID } from "../../store/tasks/types"
+import {
+  TODAY_LIST_ID,
+  useListTodos,
+  useTasksStore,
+} from "../../stores/use-tasks-store"
 import ToolbarButton from "../../ui/toolbar-button"
 import NewTaskDialog from "./new-task-dialog"
 import TaskRow from "./task-row"

@@ -23,7 +23,7 @@ gap, no optimistic overlay, no catch-up reconciliation.
   task to Today moves its id into Today's array but leaves `projectId` alone —
   that's why Today rows can show a project badge and why Unschedule knows where
   to send the task back.
-- **Pure operations** (`src/store/tasks/operations.ts`): `moveTodoToList(state,
+- **Pure operations** (`src/lib/task-operations.ts`): `moveTodoToList(state,
 todoId, targetListId, index)` returns the next state slices without touching
   the store. Store actions commit them; the drag preview (below) will call the
   same function on hypothetical state. Preview and commit cannot disagree.

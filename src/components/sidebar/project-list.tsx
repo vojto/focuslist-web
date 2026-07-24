@@ -18,7 +18,7 @@ import {
   useSelectedProjectId,
   useSelectProject,
 } from "../../hooks/use-selected-project"
-import { useProjects, useTasksStore } from "../../store/tasks/store"
+import { useProjects, useTasksStore } from "../../stores/use-tasks-store"
 import ProjectRow from "./project-row"
 import ProjectRowPreview from "./project-row-preview"
 

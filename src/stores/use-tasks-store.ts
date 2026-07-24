@@ -4,17 +4,25 @@ import {
   insertTodoIntoList,
   moveTodoToList,
   removeTodoFromLists,
-} from "./operations"
-import {
-  TODAY_LIST_ID,
-  type ListId,
-  type TaskList,
-  type TasksState,
-  type Todo,
-  type TodoId,
-} from "./types"
+} from "../lib/task-operations"
+import type {
+  ListId,
+  ListsById,
+  TaskList,
+  Todo,
+  TodoId,
+  TodosById,
+} from "../types"
 
 export const TASKS_STORAGE_KEY = "focuslist-tasks"
+
+export const TODAY_LIST_ID: ListId = "today"
+
+export interface TasksState {
+  todosById: TodosById
+  listsById: ListsById
+  projectOrder: ListId[]
+}
 
 interface TasksActions {
   addProject: (name: string) => ListId

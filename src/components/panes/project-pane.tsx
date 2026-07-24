@@ -1,6 +1,10 @@
 import { useState } from "react"
 import { useSelectedProjectId } from "../../hooks/use-selected-project"
-import { useList, useListTodos, useTasksStore } from "../../store/tasks/store"
+import {
+  useList,
+  useListTodos,
+  useTasksStore,
+} from "../../stores/use-tasks-store"
 import ToolbarButton from "../../ui/toolbar-button"
 import NewTaskDialog from "./new-task-dialog"
 import TaskRow from "./task-row"

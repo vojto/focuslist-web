@@ -1,6 +1,9 @@
-import type { ListId, TaskList, TasksState, TodoId } from "./types"
+import type { ListId, ListsById, TaskList, TodoId, TodosById } from "../types"
 
-type ListsById = TasksState["listsById"]
+interface Tables {
+  listsById: ListsById
+  todosById: TodosById
+}
 
 export function findListOf(
   listsById: ListsById,
@@ -50,25 +53,25 @@ export function insertTodoIntoList(
 // Moving into a project reassigns belonging (projectId); moving onto Today
 // only changes placement — the todo still belongs to its project.
 export function moveTodoToList(
-  state: Pick<TasksState, "listsById" | "todosById">,
+  tables: Tables,
   todoId: TodoId,
   targetListId: ListId,
   index?: number,
-): Pick<TasksState, "listsById" | "todosById"> {
-  const todo = state.todosById[todoId]
-  const target = state.listsById[targetListId]
+): Tables {
+  const todo = tables.todosById[todoId]
+  const target = tables.listsById[targetListId]
   if (todo === undefined || target === undefined) {
-    return state
+    return tables
   }
   const listsById = insertTodoIntoList(
-    removeTodoFromLists(state.listsById, todoId),
+    removeTodoFromLists(tables.listsById, todoId),
     targetListId,
     todoId,
     index,
   )
   const todosById =
     target.kind === "project" && todo.projectId !== targetListId
-      ? { ...state.todosById, [todoId]: { ...todo, projectId: targetListId } }
-      : state.todosById
+      ? { ...tables.todosById, [todoId]: { ...todo, projectId: targetListId } }
+      : tables.todosById
   return { listsById, todosById }
 }

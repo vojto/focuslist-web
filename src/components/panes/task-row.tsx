@@ -1,5 +1,5 @@
-import { useTasksStore } from "../../store/tasks/store"
-import type { Todo } from "../../store/tasks/types"
+import { useTasksStore } from "../../stores/use-tasks-store"
+import type { Todo } from "../../types"
 
 export default function TaskRow({
   showProject = false,
