@@ -9,9 +9,9 @@ import type { ListId, PaneId, TodoId } from "../schema"
 // so one value pair per concern means two panes can never both claim it.
 
 export function selectTodo(db: Db, todoId: TodoId, paneId: PaneId) {
-  db.store.transaction(() => {
-    db.store.setValue("selectedTodoId", todoId)
-    db.store.setValue("selectedTodoPaneId", paneId)
+  db.store.setPartialValues({
+    selectedTodoId: todoId,
+    selectedTodoPaneId: paneId,
   })
 }
 
@@ -23,9 +23,9 @@ export function clearTodoSelection(db: Db) {
 }
 
 export function editTodo(db: Db, todoId: TodoId, paneId: PaneId) {
-  db.store.transaction(() => {
-    db.store.setValue("editingTodoId", todoId)
-    db.store.setValue("editingTodoPaneId", paneId)
+  db.store.setPartialValues({
+    editingTodoId: todoId,
+    editingTodoPaneId: paneId,
   })
 }
 

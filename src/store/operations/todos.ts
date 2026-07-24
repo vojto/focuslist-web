@@ -32,11 +32,12 @@ function insertPosition(
 
 // A new todo starts untitled at the end of the list — the caller drops it
 // straight into inline editing, and an empty title renders as the "New Task"
-// placeholder. Returns undefined when the list does not exist.
-export function addTodo(db: Db, listId: ListId): TodoId | undefined {
+// placeholder. Only a pane showing the list can ask for one, so a missing
+// list is a bug rather than a case to handle.
+export function addTodo(db: Db, listId: ListId): TodoId {
   const kind = db.store.getCell("lists", listId, "kind")
   if (kind === undefined) {
-    return undefined
+    throw new Error(`Cannot add a todo to unknown list ${listId}`)
   }
   const id: TodoId = `todo-${crypto.randomUUID()}`
   db.store.setRow("todos", id, {

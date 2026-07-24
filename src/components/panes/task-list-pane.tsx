@@ -30,10 +30,7 @@ export default function TaskListPane({
   // One transaction, so the new row's first render is already in edit mode.
   const handleNewTask = () => {
     db.store.transaction(() => {
-      const todoId = addTodo(db, listId)
-      if (todoId !== undefined) {
-        editTodo(todoId)
-      }
+      editTodo(addTodo(db, listId))
     })
   }
 

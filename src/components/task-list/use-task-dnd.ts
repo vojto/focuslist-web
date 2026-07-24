@@ -36,6 +36,13 @@ interface CardRectangle {
   height: number
 }
 
+// Panes and rows both register as droppables, which is where the placement
+// math reads its rectangles from — the library's own collision results are
+// never consulted.
+function rectOf(manager: DragDropManager, id: string): DOMRect | undefined {
+  return manager.registry.droppables.get(id)?.element?.getBoundingClientRect()
+}
+
 function commitMove(db: Db, todoId: TodoId, listId: ListId, index: number) {
   // moveTodo's index is relative to the target list without the dragged
   // todo, which equals the todo's own index in the target order.
@@ -87,11 +94,11 @@ function placementListId(
   let isOverSource = false
   let targetListId: ListId | null = null
   for (const listId of visibleListIds) {
-    const element = manager.registry.droppables.get(listId)?.element
-    if (element === undefined) {
+    const paneRect = rectOf(manager, listId)
+    if (paneRect === undefined) {
       continue
     }
-    const ratio = paneOverlapRatio(card, element.getBoundingClientRect())
+    const ratio = paneOverlapRatio(card, paneRect)
     if (listId === sourceListId) {
       isOverSource = ratio > 0
     } else if (ratio >= TARGET_OVERLAP_RATIO) {
@@ -117,19 +124,13 @@ function commitPlacement(
   const y =
     event.operation.shape?.current.center.y ??
     event.operation.position.current.y
-  const rowIds = db.indexes
+  // The slot is simply how many rows the card's center has passed.
+  const index = db.indexes
     .getSliceRowIds("todosByList", listId)
-    .filter((id) => id !== todoId)
-  let index = 0
-  for (const rowId of rowIds) {
-    const element = manager.registry.droppables.get(rowId)?.element
-    if (element !== undefined) {
-      const rect = element.getBoundingClientRect()
-      if (y > rect.top + rect.height / 2) {
-        index += 1
-      }
-    }
-  }
+    .filter((rowId) => {
+      const rowRect = rowId === todoId ? undefined : rectOf(manager, rowId)
+      return rowRect !== undefined && y > rowRect.top + rowRect.height / 2
+    }).length
   commitMove(db, todoId, listId, index)
 }
 
