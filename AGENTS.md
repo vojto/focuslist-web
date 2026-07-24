@@ -1,77 +1,122 @@
 # Agent Instructions
 
-After finishing and verifying a task, automatically commit only the changes made for that task and push the commit to the current remote branch in the background. Do not include unrelated or pre-existing changes. If committing or pushing fails, report the failure to the user.
-
 ## About this project
 
-A local-first todo app: React 19 + Vite + Tailwind v4, Dexie (IndexedDB) for
-domain data, Zustand for UI state, dnd-kit for drag and drop.
+A local-first todo app ("focuslist"): a Today list plus per-project lists.
+React 19 + Vite + TypeScript (strict, `noUncheckedIndexedAccess`) +
+Tailwind v4. Domain data lives in TinyBase v9, persisted to localStorage.
+Drag and drop uses `@dnd-kit/react` 0.5.0. Routing is wouter
+(`src/lib/routes.ts`); menus/dialogs build on `@base-ui/react`.
+
+## Workflow
+
+- The user tests changes in the running app themselves. Leave the dev server
+  running (`npm run dev`, usually port 5174) and hand off; don't drive the
+  app with Playwright unprompted.
+- Acceptance scripts for drag and drop live in `scripts/smoke-*.cjs`
+  (Playwright required by absolute path from the sibling `focustask`
+  checkout). If a DOM change breaks their selectors, adapt the selectors —
+  never weaken what they assert. The user runs them.
+- Commit when the user asks, not automatically.
+- Verify with `npm run build && npm run lint && npx prettier --check .` —
+  all must pass clean.
 
 ## React Compiler is enabled
 
-This project uses the React Compiler (`babel-plugin-react-compiler`, wired into
-`@vitejs/plugin-react` in `vite.config.ts`). It memoizes components and values
-automatically at build time. This changes how you should write React here:
+`babel-plugin-react-compiler` is wired into `@vitejs/plugin-react` in
+`vite.config.ts`. It memoizes components and values automatically at build
+time. This changes how you should write React here:
 
-- **Do not** use `useCallback`, `useMemo`, or `React.memo`. The compiler makes
-  them redundant. Write plain functions and plain values; if you see manual
-  memoization in a diff, it is almost certainly wrong for this codebase.
-- Event handlers are plain inline functions or plain `const` functions in the
-  component body — no wrapping, no dependency arrays.
+- **Do not** use `useCallback`, `useMemo`, or `React.memo`. The compiler
+  makes them redundant. Write plain functions and plain values; if you see
+  manual memoization in a diff, it is almost certainly wrong for this
+  codebase. (Narrow exception: a `useCallback` whose identity gates a ref
+  callback, as in `project-row.tsx`'s edit-input focus.)
+- Event handlers are plain inline functions or plain `const` functions in
+  the component body — no wrapping, no dependency arrays.
 - The one thing the compiler needs in return: follow the Rules of React. No
   mutating props/state, no side effects during render, hooks only at the top
   level. `eslint-plugin-react-hooks` (the `recommended-latest` config in
   `eslint.config.js`) includes the compiler's lint rules and will flag
-  violations — a flagged component is silently skipped by the compiler rather
-  than broken, but fix the violation instead of working around it.
-- A function that calls no hooks is not a hook: don't give it a `use` prefix;
-  lint flags unnecessary `use` prefixes.
-- If a memoization escape hatch ever seems genuinely necessary, stop and
-  reconsider the data flow first; it almost never is in this app.
+  violations — a flagged component is silently skipped by the compiler
+  rather than broken, but fix the violation instead of working around it.
+- A function that calls no hooks is not a hook: don't give it a `use`
+  prefix; lint flags unnecessary `use` prefixes.
+
+## Data layer (TinyBase)
+
+- Schema in `src/store/schema.ts`: tables `lists {kind, name, position}` and
+  `todos {title, isCompleted, listId, position, projectId}`, plus UI values
+  (`sidebarWidth`, `projectWidth`). A todo _shows_ in exactly one list
+  (`listId` + fractional `position`) and _belongs_ to a project
+  (`projectId`) — scheduling onto Today never touches `projectId`.
+- `src/store/store-provider.tsx` creates the store, indexes (`todosByList`,
+  `listsByKind` — ordered views come from their slices), checkpoints, and a
+  localStorage persister. Children render only after persisted data loads.
+  The Today list row is a structural invariant, restored on load if missing.
+- All mutations live in `src/store/operations/` (`lists.ts`, `todos.ts`);
+  components never write cells directly. `moveTodo(db, todoId, listId,
+index?)` is the single mutation for drops; its `index` is relative to the
+  target list **without** the dragged todo. Ordering uses fractional
+  positions (midpoint inserts, no renumbering).
+- Hooks come from `src/store/hooks.ts` (the single schema-typed cast of
+  `tinybase/ui-react/with-schemas`); `useDb()` bundles store + indexes for
+  the operations layer.
+- Checkpoints are the undo mechanism. A drag is one undo step:
+  `addCheckpoint()` at drag start, `goTo(preDragId)` on cancel,
+  `addCheckpoint("Move task")` on drop.
+- Verify TinyBase APIs against `node_modules/tinybase/agents.md` and
+  `node_modules/tinybase/@types/` — do not trust training data.
+- Ephemeral UI state (todo selection, in-flight pane widths) is plain React
+  state; persistent UI state goes in TinyBase values.
+
+## Drag and drop (@dnd-kit/react)
+
+`@dnd-kit/react` + `@dnd-kit/helpers`, exact-pinned at 0.5.0 — a fast-moving
+0.x rewrite. The installed type declarations are the source of truth, not
+docs or memory.
+
+- Two independent `DragDropProvider`s: tasks in `focus-screen.tsx`, project
+  reordering in `sidebar/project-list.tsx`.
+- Rows are `useSortable` (`id`, `index`, `group` = list id, `type`/`accept`).
+  Clone feedback is per-entity plugin config —
+  `plugins: (defaults) => [...defaults, Feedback.configure({feedback:
+"clone"})]` — because 0.5.0 has no top-level `feedback` input.
+- Panes are plain `useDroppable` targets with `CollisionPriority.Low` so
+  hovered rows win.
+- TinyBase is the source of truth mid-drag
+  (`components/task-list/use-task-dnd.ts`): row hovers commit real moves
+  through `move()` from `@dnd-kit/helpers` on `dragover`; pane hovers
+  (padding, empty lists) place by row midlines and also commit on
+  `dragmove`, because `dragover` only fires when the hovered target changes
+  and `move()`'s own pane handling splits at the pane's center (wrong for
+  full-height panes). Never `preventDefault()` a dragmove — it freezes the
+  drag.
+- Mid-drag the library floats the real row (`data-dnd-dragging`) and keeps
+  an inert clone in the flow (`data-dnd-placeholder`). Style those states
+  with Tailwind data variants on the row element (see
+  `task-list/task-row.tsx`); React-conditional classes won't work because
+  attribute changes are mirrored onto the clone.
 
 ## Other conventions
 
 - **Prettier, no semicolons** — `.prettierrc` sets `semi: false`. Run
-  `npm run format` after edits; `prettier --check .` must pass.
-- **Strict, type-aware linting** — ESLint runs typescript-eslint
-  `strictTypeChecked` + `stylisticTypeChecked` (with `projectService`), plus
-  `@eslint-react` and `jsx-a11y`. Practical consequences:
-  - Fire-and-forget promises (Dexie writes in event handlers) must be
-    explicitly discarded: `onClick={() => { void db.todos.delete(id) }}`.
-    Never pass an async function where a `() => void` is expected — widen the
-    prop type to `() => void | Promise<void>` instead.
+  `npm run format` after edits.
+- **Strict, type-aware linting** — typescript-eslint `strictTypeChecked` +
+  `stylisticTypeChecked`, plus `@eslint-react` and `jsx-a11y`:
   - No non-null assertions (`!`); narrow with a check or throw.
-  - Interactive elements need accessible names (`aria-label` etc.).
-- **State split**: persistent domain data (todos, projects) lives in Dexie
-  (`src/db.ts`), read reactively via `useLiveQuery`. Ephemeral UI state
-  (selection, pane widths) lives in the Zustand store
-  (`src/stores/ui-store.ts`). Don't move domain data into Zustand.
-- **Domain layer**: components never touch `db` directly. Each domain has a
-  module in `src/lib/` (`projects.ts`, `todos.ts`) owning both the query
-  hooks (`useProjects()`, `useTodos()` — thin `useLiveQuery` wrappers) and
-  the mutations (`createProject`, `reorderProjects`, `toggleTodo`, …).
-  Domain rules like order assignment live there, not in components. Generic
-  reusable hooks (no domain knowledge) live in `src/hooks/` (e.g.
-  `use-optimistic-order.ts`).
-- **Dexie schema changes** are additive: never edit an existing
-  `db.version(n)` block — add a new version with an `.upgrade()` migration.
-  Projects carry a persisted `order` field (sidebar ordering); new projects
-  append at `max(order) + 1`.
+  - Interactive elements need accessible names and keyboard handling
+    (jsx-a11y is strict about roles: e.g. an `li` may be `role="option"`,
+    not `role="button"`).
 - **Components** are grouped by feature under `src/components/`
-  (e.g. `sidebar/`, `panes/`, `task-list/`). Default exports, kebab-case
+  (`sidebar/`, `panes/`, `task-list/`). Default exports, kebab-case
   filenames.
 - **Domain hooks are co-located with their component.** A hook that is
   specific to one component — not reusable across components — lives in that
   component's feature folder (e.g. `src/components/task-list/use-task-dnd.ts`
   next to `task-list.tsx`). Only generic hooks with no ties to a single
   component belong in `src/hooks/`.
-- **Drag and drop** uses dnd-kit with the `DragOverlay` pattern: a
-  presentational preview component with `placeholder`/`overlay` states
-  (`sidebar/project-row-preview.tsx`), a thin `useSortable` row wrapper, and a
-  `DndContext` in the list component. Follow the same shape for new sortable
-  lists. Because Dexie writes land asynchronously, the list must apply the
-  new order synchronously in `onDragEnd` via `useOptimisticOrder`
-  (`src/hooks/use-optimistic-order.ts`); otherwise the drop animation targets
-  the item's old slot and the list visibly snaps. See
-  `sidebar/project-list.tsx` for the full wiring.
-- Verify with `npx tsc -b && npm run lint && npx prettier --check .`.
+- **Dialogs are per-entity** (`new-task-dialog.tsx`, `new-project-dialog.tsx`)
+  — no shared generic name-prompt dialog.
+- Generic presentational primitives (buttons, menus, separators) live in
+  `src/ui/`.
