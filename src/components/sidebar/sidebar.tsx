@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useSelectProject } from "../../hooks/use-selected-project"
 import { useDb } from "../../store/hooks"
-import { addProject } from "../../store/operations"
+import { addProject } from "../../store/operations/lists"
 import ToolbarButton from "../../ui/toolbar-button"
 import NewProjectDialog from "./new-project-dialog"
 import ProjectList from "./project-list"

@@ -1,56 +1,35 @@
-import {
-  closestCenter,
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  type DragStartEvent,
-} from "@dnd-kit/core"
-import {
-  arrayMove,
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable"
-import { useState } from "react"
-import { useCell, useDb, useSliceRowIds } from "../../store/hooks"
+import { move } from "@dnd-kit/helpers"
+import { DragDropProvider } from "@dnd-kit/react"
+import type { DragEndEvent, DragOverEvent } from "@dnd-kit/react"
+import { useRef } from "react"
+import { useDb, useSliceRowIds } from "../../store/hooks"
 import {
   useSelectedProjectId,
   useSelectProject,
 } from "../../hooks/use-selected-project"
-import { reorderProjects } from "../../store/operations"
+import { reorderProjects } from "../../store/operations/lists"
 import ProjectRow from "./project-row"
-import ProjectRowPreview from "./project-row-preview"
 
 export default function ProjectList() {
   const db = useDb()
   const projectIds = useSliceRowIds("listsByKind", "project")
   const selectedProjectId = useSelectedProjectId()
   const selectProject = useSelectProject()
-  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
-  const activeProjectName = useCell("lists", activeProjectId ?? "", "name")
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-  )
+  // The store is the source of truth during the drag too: every reorder is
+  // committed as it happens, and a canceled drag restores this snapshot.
+  const preDragOrderRef = useRef<readonly string[] | null>(null)
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveProjectId(String(event.active.id))
+  const handleDragStart = () => {
+    preDragOrderRef.current = [...projectIds]
+  }
+  const handleDragOver = (event: DragOverEvent) => {
+    reorderProjects(db, move([...projectIds], event))
   }
   const handleDragEnd = (event: DragEndEvent) => {
-    setActiveProjectId(null)
-    if (event.over === null) {
-      return
+    if (event.canceled && preDragOrderRef.current !== null) {
+      reorderProjects(db, preDragOrderRef.current)
     }
-    const activeIndex = projectIds.indexOf(String(event.active.id))
-    const overIndex = projectIds.indexOf(String(event.over.id))
-    if (activeIndex === -1 || overIndex === -1 || activeIndex === overIndex) {
-      return
-    }
-    reorderProjects(db, arrayMove([...projectIds], activeIndex, overIndex))
-  }
-  const handleDragCancel = () => {
-    setActiveProjectId(null)
+    preDragOrderRef.current = null
   }
 
   return (
@@ -59,38 +38,23 @@ export default function ProjectList() {
         Projects
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
+      <DragDropProvider
         onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
-        onDragCancel={handleDragCancel}
       >
-        <SortableContext
-          items={[...projectIds]}
-          strategy={verticalListSortingStrategy}
-        >
-          <nav aria-label="Projects" className="mt-2 space-y-0.5">
-            {projectIds.map((projectId) => (
-              <ProjectRow
-                isSelected={projectId === selectedProjectId}
-                key={projectId}
-                onSelect={selectProject}
-                projectId={projectId}
-              />
-            ))}
-          </nav>
-        </SortableContext>
-        <DragOverlay>
-          {activeProjectName === undefined ? null : (
-            <ProjectRowPreview
-              isSelected={activeProjectId === selectedProjectId}
-              label={activeProjectName}
-              overlay
+        <nav aria-label="Projects" className="mt-2 space-y-0.5">
+          {projectIds.map((projectId, index) => (
+            <ProjectRow
+              index={index}
+              isSelected={projectId === selectedProjectId}
+              key={projectId}
+              onSelect={selectProject}
+              projectId={projectId}
             />
-          )}
-        </DragOverlay>
-      </DndContext>
+          ))}
+        </nav>
+      </DragDropProvider>
     </section>
   )
 }

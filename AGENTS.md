@@ -58,7 +58,13 @@ automatically at build time. This changes how you should write React here:
   Projects carry a persisted `order` field (sidebar ordering); new projects
   append at `max(order) + 1`.
 - **Components** are grouped by feature under `src/components/`
-  (e.g. `sidebar/`, `panes/`). Default exports, kebab-case filenames.
+  (e.g. `sidebar/`, `panes/`, `task-list/`). Default exports, kebab-case
+  filenames.
+- **Domain hooks are co-located with their component.** A hook that is
+  specific to one component — not reusable across components — lives in that
+  component's feature folder (e.g. `src/components/task-list/use-task-dnd.ts`
+  next to `task-list.tsx`). Only generic hooks with no ties to a single
+  component belong in `src/hooks/`.
 - **Drag and drop** uses dnd-kit with the `DragOverlay` pattern: a
   presentational preview component with `placeholder`/`overlay` states
   (`sidebar/project-row-preview.tsx`), a thin `useSortable` row wrapper, and a

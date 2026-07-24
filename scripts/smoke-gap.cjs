@@ -1,11 +1,12 @@
 const { chromium } = require("/Users/vojto/Code/Active/focustask/node_modules/playwright")
 
-// Mid-drag the placeholder is visibility:hidden, so read textContent (which
-// includes hidden text) to see the true row order.
+// Mid-drag the dragged row floats out of the flow ([data-dnd-dragging],
+// position:fixed) while a cloned stand-in ([data-dnd-placeholder]) marks the
+// slot, so the in-flow row order is the lis without the floating one.
 async function rowOrder(pane) {
-  const texts = await pane.locator("ul > li").evaluateAll((els) =>
-    els.map((el) => (el.textContent ?? "").trim()),
-  )
+  const texts = await pane
+    .locator("ul > li:not([data-dnd-dragging])")
+    .evaluateAll((els) => els.map((el) => (el.textContent ?? "").trim()))
   return texts.map((t) => t.replace(/Delete$/, "").trim())
 }
 

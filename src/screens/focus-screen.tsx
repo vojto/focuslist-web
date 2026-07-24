@@ -1,13 +1,12 @@
-import { DndContext, DragOverlay } from "@dnd-kit/core"
+import { DragDropProvider } from "@dnd-kit/react"
 import { useState } from "react"
 import TaskListPane from "../components/panes/task-list-pane"
-import { TaskRowCard } from "../components/panes/task-row"
 import Sidebar from "../components/sidebar/sidebar"
 import { useSelectedProjectId } from "../hooks/use-selected-project"
 import { useCell, useSetValueCallback, useValue } from "../store/hooks"
-import { TODAY_LIST_ID } from "../store/schema"
+import { TODAY_LIST_ID, type TodoId } from "../store/schema"
 import PaneSeparator from "../ui/pane-separator"
-import { useTaskDnd } from "./use-task-dnd"
+import { useTaskDnd } from "../components/task-list/use-task-dnd"
 
 const MIN_SIDEBAR_WIDTH = 176
 const MAX_SIDEBAR_WIDTH = 320
@@ -51,21 +50,19 @@ export default function FocusScreen() {
   )
   const [sidebarWidth, setSidebarWidth] = useState(storedSidebarWidth)
   const [projectWidth, setProjectWidth] = useState(storedProjectWidth)
+  const [selectedTodoId, setSelectedTodoId] = useState<TodoId | null>(null)
 
   const selectedProjectId = useSelectedProjectId()
   const selectedKind = useCell("lists", selectedProjectId ?? "", "kind")
   const projectListId =
     selectedKind === "project" ? selectedProjectId : undefined
 
-  const {
-    activeTodoId,
-    collisionDetection,
-    handleDragCancel,
-    handleDragEnd,
-    handleDragMove,
-    handleDragStart,
-    sensors,
-  } = useTaskDnd()
+  const visibleListIds =
+    projectListId === undefined
+      ? [TODAY_LIST_ID]
+      : [TODAY_LIST_ID, projectListId]
+  const { handleDragEnd, handleDragMove, handleDragOver, handleDragStart } =
+    useTaskDnd(visibleListIds)
 
   const sidebarWidthAt = (pointerX: number) =>
     clamp(pointerX, MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH)
@@ -83,13 +80,11 @@ export default function FocusScreen() {
   const projectColumn = projectWidth ? `${projectWidth}px` : "minmax(0, 1fr)"
 
   return (
-    <DndContext
-      collisionDetection={collisionDetection}
-      sensors={sensors}
+    <DragDropProvider
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
-      onDragCancel={handleDragCancel}
     >
       <main
         className="grid h-dvh w-screen overflow-hidden bg-white"
@@ -109,7 +104,11 @@ export default function FocusScreen() {
           }}
         />
 
-        <TaskListPane listId={TODAY_LIST_ID} />
+        <TaskListPane
+          listId={TODAY_LIST_ID}
+          onSelectTodo={setSelectedTodoId}
+          selectedTodoId={selectedTodoId}
+        />
 
         <PaneSeparator
           label="Resize details pane"
@@ -122,17 +121,15 @@ export default function FocusScreen() {
         />
 
         {projectListId !== undefined ? (
-          <TaskListPane listId={projectListId} />
+          <TaskListPane
+            listId={projectListId}
+            onSelectTodo={setSelectedTodoId}
+            selectedTodoId={selectedTodoId}
+          />
         ) : (
           <NoProjectPane />
         )}
       </main>
-
-      <DragOverlay>
-        {activeTodoId === null ? null : (
-          <TaskRowCard overlay showProject todoId={activeTodoId} />
-        )}
-      </DragOverlay>
-    </DndContext>
+    </DragDropProvider>
   )
 }

@@ -1,5 +1,5 @@
-import type { Db } from "./hooks"
-import type { ListId, TodoId } from "./schema"
+import type { Db } from "../hooks"
+import type { ListId, TodoId } from "../schema"
 
 function todoIdsIn(db: Db, listId: ListId): readonly string[] {
   return db.indexes.getSliceRowIds("todosByList", listId)
@@ -72,38 +72,4 @@ export function unscheduleTodo(db: Db, todoId: TodoId) {
   if (projectId !== undefined) {
     moveTodo(db, todoId, projectId)
   }
-}
-
-export function addProject(db: Db, name: string): ListId {
-  const id: ListId = `project-${crypto.randomUUID()}`
-  const projectIds = db.indexes.getSliceRowIds("listsByKind", "project")
-  const lastId = projectIds.at(-1)
-  const position =
-    lastId === undefined
-      ? 1
-      : (db.store.getCell("lists", lastId, "position") ?? 0) + 1
-  db.store.setRow("lists", id, { kind: "project", name, position })
-  return id
-}
-
-// Deleting a project removes every todo that belongs to it, including todos
-// currently scheduled onto Today — belonging is exclusive, so they have no
-// other home.
-export function deleteProject(db: Db, projectId: ListId) {
-  db.store.transaction(() => {
-    db.store.getRowIds("todos").forEach((todoId) => {
-      if (db.store.getCell("todos", todoId, "projectId") === projectId) {
-        db.store.delRow("todos", todoId)
-      }
-    })
-    db.store.delRow("lists", projectId)
-  })
-}
-
-export function reorderProjects(db: Db, orderedIds: readonly ListId[]) {
-  db.store.transaction(() => {
-    orderedIds.forEach((listId, index) => {
-      db.store.setCell("lists", listId, "position", index)
-    })
-  })
 }

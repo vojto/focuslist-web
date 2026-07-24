@@ -15,6 +15,13 @@ async function drag(page, from, to, { cancel = false } = {}) {
     await page.waitForTimeout(100)
   }
   await page.mouse.up()
+  // Wait out the drop animation: until it ends the dragged row floats
+  // ([data-dnd-dragging]) next to its cloned stand-in, so text locators
+  // would see rows twice.
+  await page
+    .locator("[data-dnd-placeholder]")
+    .waitFor({ state: "detached", timeout: 2000 })
+    .catch(() => {})
   await page.waitForTimeout(150)
 }
 

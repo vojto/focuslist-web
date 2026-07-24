@@ -48,9 +48,17 @@ async function main() {
   await page.mouse.move(targetX, targetY, { steps: 15 })
   await page.waitForTimeout(150)
   await page.mouse.up()
+  // Wait out the drop animation so the floating copy of the dragged row
+  // ([data-dnd-dragging]) is gone before reading the row order.
+  await page
+    .locator("[data-dnd-placeholder]")
+    .waitFor({ state: "detached", timeout: 2000 })
+    .catch(() => {})
   await page.waitForTimeout(200)
 
-  const order = await todayPane.locator("ul > li").allInnerTexts()
+  const order = await todayPane
+    .locator("ul > li:not([data-dnd-dragging])")
+    .allInnerTexts()
   const names = order.map((text) => text.split("\n")[0].trim())
   console.log("today order after padding drop:", JSON.stringify(names))
   console.log("landed at top (not bottom):", names[0].startsWith("Dragged"))
