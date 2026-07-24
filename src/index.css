@@ -22,6 +22,15 @@ body {
   isolation: isolate;
 }
 
+/* No focus rings anywhere. Rows are focusable so the keyboard can reach them,
+   but DOM focus is not what the app draws — selection is, and its own
+   highlight says where you are. A ring left on a row the selection has since
+   moved off would contradict it. */
+:focus,
+:focus-visible {
+  outline: none;
+}
+
 .is-resizing-pane,
 .is-resizing-pane * {
   cursor: col-resize !important;

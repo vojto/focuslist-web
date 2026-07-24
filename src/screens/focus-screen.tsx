@@ -2,9 +2,10 @@ import { DragDropProvider } from "@dnd-kit/react"
 import TaskListPane from "../components/panes/task-list-pane"
 import Sidebar from "../components/sidebar/sidebar"
 import { useSelectedProjectId } from "../hooks/use-selected-project"
+import type { Pane } from "../keyboard/commands"
 import { useKeyboard } from "../keyboard/use-keyboard"
 import { useCell, useSetValueCallback, useValue } from "../store/hooks"
-import { TODAY_LIST_ID } from "../store/schema"
+import { PROJECT_PANE_ID, TODAY_LIST_ID, TODAY_PANE_ID } from "../store/schema"
 import PaneSeparator from "../ui/pane-separator"
 import ToolbarButton from "../ui/toolbar-button"
 import { useTaskDnd } from "../components/task-list/use-task-dnd"
@@ -35,7 +36,6 @@ function NoProjectPane() {
 }
 
 export default function FocusScreen() {
-  useKeyboard()
   const sidebarWidth = useValue("sidebarWidth")
   const projectWidth = useValue("projectWidth")
   const storeSidebarWidth = useSetValueCallback(
@@ -54,12 +54,20 @@ export default function FocusScreen() {
   const projectListId =
     selectedKind === "project" ? selectedProjectId : undefined
 
-  const visibleListIds =
+  // The task panes in the order they appear on screen, which is what makes
+  // "the pane to the right" meaningful to a keyboard command.
+  const panes: Pane[] =
     projectListId === undefined
-      ? [TODAY_LIST_ID]
-      : [TODAY_LIST_ID, projectListId]
-  const { handleDrag, handleDragEnd, handleDragStart } =
-    useTaskDnd(visibleListIds)
+      ? [{ listId: TODAY_LIST_ID, paneId: TODAY_PANE_ID }]
+      : [
+          { listId: projectListId, paneId: PROJECT_PANE_ID },
+          { listId: TODAY_LIST_ID, paneId: TODAY_PANE_ID },
+        ]
+  useKeyboard(panes)
+
+  const { handleDrag, handleDragEnd, handleDragStart } = useTaskDnd(
+    panes.map((pane) => pane.listId),
+  )
 
   const sidebarWidthAt = (pointerX: number) =>
     clamp(pointerX, MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH)
@@ -97,7 +105,7 @@ export default function FocusScreen() {
         />
 
         {projectListId !== undefined ? (
-          <TaskListPane listId={projectListId} paneId="left" />
+          <TaskListPane listId={projectListId} paneId={PROJECT_PANE_ID} />
         ) : (
           <NoProjectPane />
         )}
@@ -107,7 +115,7 @@ export default function FocusScreen() {
           onResize={(pointerX) => storeProjectWidth(projectWidthAt(pointerX))}
         />
 
-        <TaskListPane listId={TODAY_LIST_ID} paneId="right" />
+        <TaskListPane listId={TODAY_LIST_ID} paneId={TODAY_PANE_ID} />
       </main>
     </DragDropProvider>
   )

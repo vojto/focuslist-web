@@ -5,6 +5,8 @@ import type { CommandId } from "./commands"
 export const KEYMAP: Record<string, CommandId> = {
   ArrowDown: "selection.next",
   ArrowUp: "selection.previous",
+  ArrowRight: "selection.paneRight",
+  ArrowLeft: "selection.paneLeft",
 }
 
 // Serializes an event into the keymap's key format: modifiers in a fixed

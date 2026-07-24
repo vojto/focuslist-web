@@ -1,12 +1,16 @@
 import { Feedback } from "@dnd-kit/dom"
 import { useSortable } from "@dnd-kit/react/sortable"
-import { useInlineRename } from "../../hooks/use-inline-rename"
-import { useSelectProject } from "../../hooks/use-selected-project"
+import {
+  useEditProject,
+  useIsProjectEditing,
+  useSelectProject,
+} from "../../hooks/use-selected-project"
 import { useCell, useDb } from "../../store/hooks"
 import { deleteProject, renameProject } from "../../store/operations/lists"
 import { PROJECT_PLACEHOLDER_NAME } from "../../store/schema"
 import type { ListId } from "../../store/schema"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
+import ProjectNameInput from "./project-name-input"
 import ProjectRowPreview from "./project-row-preview"
 
 export default function ProjectRow({
@@ -27,17 +31,19 @@ export default function ProjectRow({
   const displayLabel = hasName
     ? (name ?? PROJECT_PLACEHOLDER_NAME)
     : PROJECT_PLACEHOLDER_NAME
-  const {
-    cancelEdit,
-    commitEdit,
-    draft,
-    initInput,
-    isEditing,
-    setDraft,
-    startEditing,
-  } = useInlineRename(name, (nextName) =>
-    renameProject(db, projectId, nextName),
-  )
+  const isEditing = useIsProjectEditing(projectId)
+  const editProject = useEditProject()
+
+  // Renaming to nothing is a no-op, so a project can stay unnamed and keep
+  // showing its placeholder.
+  const commitName = (nextName: string) => {
+    const trimmed = nextName.trim()
+    if (trimmed !== "" && trimmed !== name) {
+      renameProject(db, projectId, trimmed)
+    }
+    editProject(undefined)
+  }
+
   const { ref } = useSortable({
     id: projectId,
     index,
@@ -51,7 +57,7 @@ export default function ProjectRow({
 
   const handleEdit = () => {
     onSelect(projectId)
-    startEditing()
+    editProject(projectId)
   }
 
   const handleDelete = () => {
@@ -65,19 +71,12 @@ export default function ProjectRow({
     return (
       <div ref={ref} className="w-full">
         <ProjectRowPreview isSelected={isSelected} label={name ?? ""}>
-          <input
-            ref={initInput}
-            className="min-w-0 flex-1 bg-transparent p-0 outline-none"
-            onBlur={commitEdit}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                commitEdit()
-              } else if (event.key === "Escape") {
-                cancelEdit()
-              }
+          <ProjectNameInput
+            initialName={name ?? ""}
+            onCancel={() => {
+              editProject(undefined)
             }}
-            value={draft}
+            onCommit={commitName}
           />
         </ProjectRowPreview>
       </div>
