@@ -1,7 +1,8 @@
-import { type ReactNode, useCallback, useState } from "react"
+import type { ReactNode } from "react"
 import { Feedback } from "@dnd-kit/dom"
 import { SortableKeyboardPlugin } from "@dnd-kit/dom/sortable"
 import { useSortable } from "@dnd-kit/react/sortable"
+import { useInlineRename } from "../../hooks/use-inline-rename"
 import { useBroadcastTodoEditing } from "../../hooks/use-todo-editing"
 import {
   useIsTodoSelected,
@@ -16,6 +17,18 @@ import {
 import { renameTodo } from "../../store/operations/todos"
 import type { ListId, PaneId, TodoId } from "../../store/schema"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
+
+function useTodoCompletion(todoId: TodoId) {
+  const isCompleted = useCell("todos", todoId, "isCompleted") === true
+  const toggleTodo = useSetCellCallback(
+    "todos",
+    todoId,
+    "isCompleted",
+    () => (wasCompleted) => !wasCompleted,
+    [],
+  )
+  return { isCompleted, toggleTodo }
+}
 
 // The row's visual card. It reads by id, so every rendering stays in sync.
 // Children replace the title label (the edit input slots in here) so the
@@ -35,16 +48,9 @@ export function TaskRowCard({
   todoId: TodoId
 }) {
   const title = useCell("todos", todoId, "title")
-  const isCompleted = useCell("todos", todoId, "isCompleted") === true
+  const { isCompleted, toggleTodo } = useTodoCompletion(todoId)
   // const projectId = useCell("todos", todoId, "projectId")
   // const projectName = useCell("lists", projectId ?? "", "name")
-  const toggleTodo = useSetCellCallback(
-    "todos",
-    todoId,
-    "isCompleted",
-    () => (wasCompleted) => !wasCompleted,
-    [],
-  )
 
   if (title === undefined) {
     return null
@@ -106,8 +112,15 @@ export default function TaskRow({
   const isSelected = useIsTodoSelected(paneId, todoId)
   const selectTodo = useSelectTodo(paneId)
   const title = useCell("todos", todoId, "title")
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState("")
+  const {
+    cancelEdit,
+    commitEdit,
+    draft,
+    initInput,
+    isEditing,
+    setDraft,
+    startEditing,
+  } = useInlineRename(title, (name) => renameTodo(db, todoId, name))
   useBroadcastTodoEditing(paneId, isEditing)
   // While dragging, the library floats the real row (data-dnd-dragging) and
   // keeps a cloned stand-in in the list flow (data-dnd-placeholder); the
@@ -136,36 +149,7 @@ export default function TaskRow({
     ],
   })
   const deleteTodo = useDelRowCallback("todos", todoId)
-  const isCompleted = useCell("todos", todoId, "isCompleted") === true
-  const toggleTodo = useSetCellCallback(
-    "todos",
-    todoId,
-    "isCompleted",
-    () => (wasCompleted) => !wasCompleted,
-    [],
-  )
-
-  const startEditing = () => {
-    setDraft(title ?? "")
-    setIsEditing(true)
-  }
-
-  const commitEdit = () => {
-    setIsEditing(false)
-    const trimmed = draft.trim()
-    if (trimmed !== "" && trimmed !== title) {
-      renameTodo(db, todoId, trimmed)
-    }
-  }
-
-  // Stable identity so the ref only runs when the input mounts, not on every
-  // keystroke re-render.
-  const initEditInput = useCallback((node: HTMLInputElement | null) => {
-    if (node !== null) {
-      node.focus()
-      node.setSelectionRange(node.value.length, node.value.length)
-    }
-  }, [])
+  const { isCompleted, toggleTodo } = useTodoCompletion(todoId)
 
   return (
     <ContextMenu
@@ -210,7 +194,7 @@ export default function TaskRow({
           >
             {isEditing ? (
               <input
-                ref={initEditInput}
+                ref={initInput}
                 className="min-w-0 flex-1 select-text bg-transparent p-0 text-neutral-800 outline-none"
                 onBlur={commitEdit}
                 onChange={(event) => setDraft(event.target.value)}
@@ -219,7 +203,7 @@ export default function TaskRow({
                   if (event.key === "Enter") {
                     commitEdit()
                   } else if (event.key === "Escape") {
-                    setIsEditing(false)
+                    cancelEdit()
                   }
                 }}
                 value={draft}

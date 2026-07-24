@@ -45,7 +45,7 @@ time. This changes how you should write React here:
   makes them redundant. Write plain functions and plain values; if you see
   manual memoization in a diff, it is almost certainly wrong for this
   codebase. (Narrow exception: a `useCallback` whose identity gates a ref
-  callback, as in `project-row.tsx`'s edit-input focus.)
+  callback, as in `use-inline-rename.ts`'s edit-input focus.)
 - Event handlers are plain inline functions or plain `const` functions in
   the component body — no wrapping, no dependency arrays.
 - The one thing the compiler needs in return: follow the Rules of React. No

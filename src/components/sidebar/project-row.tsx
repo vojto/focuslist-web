@@ -1,6 +1,6 @@
-import { useCallback, useState } from "react"
 import { Feedback } from "@dnd-kit/dom"
 import { useSortable } from "@dnd-kit/react/sortable"
+import { useInlineRename } from "../../hooks/use-inline-rename"
 import { useSelectProject } from "../../hooks/use-selected-project"
 import { useCell, useDb } from "../../store/hooks"
 import { deleteProject, renameProject } from "../../store/operations/lists"
@@ -22,8 +22,17 @@ export default function ProjectRow({
   const db = useDb()
   const selectProject = useSelectProject()
   const name = useCell("lists", projectId, "name")
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState("")
+  const {
+    cancelEdit,
+    commitEdit,
+    draft,
+    initInput,
+    isEditing,
+    setDraft,
+    startEditing,
+  } = useInlineRename(name, (nextName) =>
+    renameProject(db, projectId, nextName),
+  )
   const { ref } = useSortable({
     id: projectId,
     index,
@@ -35,28 +44,10 @@ export default function ProjectRow({
     ],
   })
 
-  const startEditing = () => {
+  const handleEdit = () => {
     onSelect(projectId)
-    setDraft(name ?? "")
-    setIsEditing(true)
+    startEditing()
   }
-
-  const commitEdit = () => {
-    setIsEditing(false)
-    const trimmed = draft.trim()
-    if (trimmed !== "" && trimmed !== name) {
-      renameProject(db, projectId, trimmed)
-    }
-  }
-
-  // Stable identity so the ref only runs when the input mounts, not on every
-  // keystroke re-render.
-  const initEditInput = useCallback((node: HTMLInputElement | null) => {
-    if (node !== null) {
-      node.focus()
-      node.setSelectionRange(node.value.length, node.value.length)
-    }
-  }, [])
 
   const handleDelete = () => {
     if (isSelected) {
@@ -70,7 +61,7 @@ export default function ProjectRow({
       <div ref={ref} className="w-full">
         <ProjectRowPreview isSelected={isSelected} label={name ?? ""}>
           <input
-            ref={initEditInput}
+            ref={initInput}
             className="min-w-0 flex-1 bg-transparent p-0 outline-none"
             onBlur={commitEdit}
             onChange={(event) => setDraft(event.target.value)}
@@ -78,7 +69,7 @@ export default function ProjectRow({
               if (event.key === "Enter") {
                 commitEdit()
               } else if (event.key === "Escape") {
-                setIsEditing(false)
+                cancelEdit()
               }
             }}
             value={draft}
@@ -96,7 +87,7 @@ export default function ProjectRow({
           aria-current={isSelected ? "true" : undefined}
           className="block w-full outline-none data-[dnd-dragging]:rounded-lg data-[dnd-dragging]:bg-white data-[dnd-dragging]:shadow-sm data-[dnd-placeholder]:rounded-lg data-[dnd-placeholder]:bg-neutral-200/60 [&[data-dnd-placeholder]_span]:invisible"
           onClick={() => onSelect(projectId)}
-          onDoubleClick={startEditing}
+          onDoubleClick={handleEdit}
           type="button"
         >
           <ProjectRowPreview isSelected={isSelected} label={name ?? ""} />
