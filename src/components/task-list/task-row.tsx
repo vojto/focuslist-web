@@ -44,7 +44,7 @@ export function TaskRowCard({
 
   return (
     <div
-      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${cardClass}`}
+      className={`flex cursor-default select-none items-center gap-3 rounded-lg px-3 py-2 text-sm ${cardClass}`}
     >
       <input
         aria-label={`Mark ${title} complete`}
@@ -94,9 +94,11 @@ export default function TaskRow({
     group: listId,
     type: "item",
     accept: "item",
-    // TEMPORARY experiment: kill the index-change transition. NOT null —
-    // the React wrapper spreads input.transition over the defaults, so
-    // null is silently ignored; duration 0 survives the merge.
+    // The library's index transition animates on its own render clock, one
+    // frame behind our TinyBase-driven re-renders (visible flicker when
+    // rows cross); useFlipList animates reorders pre-paint instead. NOT
+    // null — the React wrapper spreads input.transition over the defaults,
+    // so null is silently ignored; duration 0 survives the merge.
     transition: { duration: 0 },
     // 0.5.0 has no top-level `feedback` input; it is per-entity plugin
     // config (the SortableInput docs show exactly this pattern). The
@@ -116,6 +118,7 @@ export default function TaskRow({
         <li
           ref={ref}
           className="touch-none data-[dnd-dragging]:rounded-lg data-[dnd-dragging]:bg-white data-[dnd-dragging]:shadow-lg data-[dnd-placeholder]:rounded-lg data-[dnd-placeholder]:bg-neutral-100 [&[data-dnd-placeholder]_div]:invisible"
+          data-flip-id={todoId}
           // Focusable so keyboard users can select, and so the library's
           // keyboard sorting can pick the row up.
           aria-selected={isSelected}
@@ -125,6 +128,9 @@ export default function TaskRow({
           // already selected when a drag starts, and stays highlighted
           // while dragged.
           onPointerDown={() => selectTodo(todoId)}
+          // The pane behind us opens its own menu on background right-clicks;
+          // keep row right-clicks from reaching it so only the row menu opens.
+          onContextMenu={(event) => event.stopPropagation()}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
               selectTodo(todoId)

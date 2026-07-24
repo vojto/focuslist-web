@@ -1,6 +1,7 @@
 import { CollisionPriority } from "@dnd-kit/abstract"
 import { useDroppable } from "@dnd-kit/react"
-import type { ReactNode } from "react"
+import { useRef, type ReactNode } from "react"
+import { useFlipList } from "../../hooks/use-flip-list"
 import { useSelectTodo } from "../../hooks/use-todo-selection"
 import { useCell, useSliceRowIds } from "../../store/hooks"
 import type { ListId, PaneId } from "../../store/schema"
@@ -28,6 +29,12 @@ export default function TaskList({
     accept: "item",
     collisionPriority: CollisionPriority.Low,
   })
+  // Row reordering is animated by our own pre-paint FLIP pass; the
+  // library's index transition is disabled on the rows because it animates
+  // on the library's render clock, one frame behind our TinyBase-driven
+  // re-renders (visible as a crossing flicker).
+  const listRef = useRef<HTMLUListElement>(null)
+  useFlipList(listRef)
 
   return (
     <div
@@ -41,21 +48,19 @@ export default function TaskList({
         }
       }}
     >
-      <div className="mx-auto max-w-2xl">
-        {header}
-        <ul aria-label={name} role="listbox">
-          {todoIds.map((todoId, index) => (
-            <TaskRow
-              index={index}
-              key={todoId}
-              listId={listId}
-              paneId={paneId}
-              showProject={showProject}
-              todoId={todoId}
-            />
-          ))}
-        </ul>
-      </div>
+      {header}
+      <ul aria-label={name} ref={listRef} role="listbox">
+        {todoIds.map((todoId, index) => (
+          <TaskRow
+            index={index}
+            key={todoId}
+            listId={listId}
+            paneId={paneId}
+            showProject={showProject}
+            todoId={todoId}
+          />
+        ))}
+      </ul>
     </div>
   )
 }

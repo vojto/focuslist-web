@@ -1,15 +1,23 @@
-import { useLocation, useRoute } from "wouter"
-import { projectPath, projectRoute, rootPath } from "../lib/routes"
+import { useCallback } from "react"
+import { useDb, useValue } from "../store/hooks"
 import type { ListId } from "../store/schema"
 
 export function useSelectedProjectId(): ListId | undefined {
-  const [match, params] = useRoute(projectRoute)
-  return match ? params.id : undefined
+  return useValue("selectedProjectId")
 }
 
+// Returns a callback that selects a project, or clears the selection when
+// passed undefined.
 export function useSelectProject() {
-  const [, navigate] = useLocation()
-  return (projectId: ListId | undefined) => {
-    navigate(projectId === undefined ? rootPath : projectPath(projectId))
-  }
+  const { store } = useDb()
+  return useCallback(
+    (projectId: ListId | undefined) => {
+      if (projectId === undefined) {
+        store.delValue("selectedProjectId")
+      } else {
+        store.setValue("selectedProjectId", projectId)
+      }
+    },
+    [store],
+  )
 }

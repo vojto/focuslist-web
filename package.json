@@ -16,8 +16,7 @@
     "@dnd-kit/react": "0.5.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "tinybase": "^9.2.0",
-    "wouter": "^3.10.0"
+    "tinybase": "^9.2.0"
   },
   "devDependencies": {
     "@eslint-react/eslint-plugin": "^5.18.0",

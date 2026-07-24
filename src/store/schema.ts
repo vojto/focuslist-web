@@ -32,6 +32,8 @@ export const TABLES_SCHEMA = {
 export const VALUES_SCHEMA = {
   sidebarWidth: { type: "number", default: 224 },
   projectWidth: { type: "number" },
+  // The project shown in the left pane; absent when none is selected.
+  selectedProjectId: { type: "string" },
   // App-wide single selection: the todo plus the pane it was selected in.
   // One value pair means two panes can never both hold a selection.
   selectedTodoId: { type: "string" },

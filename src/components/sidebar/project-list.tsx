@@ -34,7 +34,7 @@ export default function ProjectList() {
 
   return (
     <section aria-label="Projects">
-      <div className="mt-8 px-3 text-xs font-semibold uppercase tracking-wider text-neutral-400">
+      <div className="px-3 text-xs font-semibold uppercase tracking-wider text-neutral-400">
         Projects
       </div>
 

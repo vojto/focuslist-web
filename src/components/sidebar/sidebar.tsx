@@ -14,18 +14,6 @@ export default function Sidebar() {
   return (
     <aside className="flex h-full min-h-0 min-w-0 flex-col bg-neutral-100">
       <div className="flex-1 overflow-y-auto px-3 pb-3 pt-6">
-        <nav aria-label="Main navigation">
-          <button
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-neutral-600 transition hover:bg-neutral-200/60 hover:text-neutral-900"
-            type="button"
-          >
-            <span aria-hidden="true" className="text-amber-500">
-              ★
-            </span>
-            Today
-          </button>
-        </nav>
-
         <ProjectList />
       </div>
 
