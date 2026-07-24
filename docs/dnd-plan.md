@@ -15,14 +15,20 @@ There is no preview state, no drag payloads, no rollback machinery.
   store is synchronous, every pane re-renders from truth, the card re-homes
   live. The preview _is_ the store.
 - **Drop** → nothing to do; the store is already correct.
-- **Cancel (Escape)** → restore the dragged todo's `listId` / `position` /
-  `projectId` from a snapshot taken at drag start. That's sufficient because
-  fractional positioning means a move never touches any other row.
+- **Cancel (Escape)** → TinyBase checkpoints: `addCheckpoint()` at drag start
+  seals the pre-drag state; cancel is `goTo(preDragCheckpointId)`. Drop adds a
+  labeled checkpoint so a whole drag is one undo step. Chosen over a manual
+  cell snapshot to stay future-proof: the same checkpoints give app-wide
+  undo/redo later. (`createCheckpoints` from `tinybase/checkpoints/with-schemas`,
+  provided alongside the store.)
 - **No drag data.** dnd-kit ids are store row ids. `over.id` is either a todo
   (`hasRow("todos", id)` → target = its `listId`, index = `indexOf` in that
   list's slice) or a pane's empty-area droppable (a list id → append).
-- **One code path.** Same-list reordering and cross-list moves are the same
-  `moveTodo` call; within-pane sorting isn't a feature, it falls out.
+- **One mutation.** Cross-list re-homing writes `moveTodo` on dragOver;
+  same-list hovering is previewed by SortableContext's own transforms (writing
+  the store there too would fight them and jitter) and the final order is the
+  same `moveTodo` call on drop. Within-pane sorting isn't a feature, it falls
+  out.
 
 Note: the localStorage persister auto-saves mid-drag states; harmless locally
 (worst case a refresh mid-drag lands on the latest hover position).
@@ -42,12 +48,12 @@ for now) — future splits are changes to that array only.
 - Each `TaskListPane`: a `SortableContext` over its slice's row ids, plus a
   `useDroppable` (id = list id) on the task area for empty lists and
   below-the-last-row drops.
-- `useTaskDnd` holds only the active `todoId` and the origin snapshot:
-  - `onDragStart`: snapshot `{listId, position, projectId}`, set active.
+- `useTaskDnd` holds only the active `todoId` and the pre-drag checkpoint id:
+  - `onDragStart`: `addCheckpoint()`, set active.
   - `onDragOver`: resolve target from `over.id`, call `moveTodo` (skip if
     already there).
-  - `onDragEnd`: clear active.
-  - `onDragCancel`: write the snapshot back, clear active.
+  - `onDragEnd`: `addCheckpoint("Move task")`, clear active.
+  - `onDragCancel`: `goTo(preDragCheckpointId)`, clear active.
 - `DragOverlay` shows the floating row (`<TaskRow todoId={activeId} />` styled
   as a card — rows read by id, so this is free); the in-list original renders
   as a placeholder. The overlay is needed because panes clip (`overflow-y`).
@@ -66,8 +72,7 @@ project badge on Today rows already works.)
 
 ## Later / optional
 
-- TinyBase checkpoints for app-wide undo/redo (would also make a whole drag
-  one undo step). Not needed for drag-cancel — the snapshot restore covers it.
+- App-wide undo/redo UI on top of the same checkpoints.
 - Keyboard sensor + `sortableKeyboardCoordinates` for accessible dragging.
 - Auto-scroll tuning inside panes for long lists.
 - Renumber a list's positions on drop if fractional midpoints ever get

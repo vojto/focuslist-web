@@ -1,8 +1,10 @@
 import { useState, type ReactNode } from "react"
+import { createCheckpoints } from "tinybase/checkpoints/with-schemas"
 import { createIndexes } from "tinybase/indexes/with-schemas"
 import { createLocalPersister } from "tinybase/persisters/persister-browser/with-schemas"
 import {
   Provider,
+  useCreateCheckpoints,
   useCreateIndexes,
   useCreatePersister,
   useCreateStore,
@@ -21,6 +23,7 @@ export default function StoreProvider({ children }: { children: ReactNode }) {
       .setIndexDefinition("todosByList", "todos", "listId", "position")
       .setIndexDefinition("listsByKind", "lists", "kind", "position"),
   )
+  const checkpoints = useCreateCheckpoints(store, createCheckpoints)
 
   useCreatePersister(
     store,
@@ -34,7 +37,7 @@ export default function StoreProvider({ children }: { children: ReactNode }) {
   )
 
   return (
-    <Provider indexes={indexes} store={store}>
+    <Provider checkpoints={checkpoints} indexes={indexes} store={store}>
       {isReady ? children : null}
     </Provider>
   )

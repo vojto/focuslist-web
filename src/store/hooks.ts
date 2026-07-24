@@ -10,6 +10,8 @@ const UiReact = UiReactModule as unknown as UiReactModule.WithSchemas<Schemas>
 export const {
   Provider,
   useCell,
+  useCheckpoints,
+  useCreateCheckpoints,
   useCreateIndexes,
   useCreatePersister,
   useCreateStore,

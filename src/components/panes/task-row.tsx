@@ -1,3 +1,6 @@
+import { useSortable } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import type { CSSProperties } from "react"
 import {
   useCell,
   useDelRowCallback,
@@ -5,10 +8,16 @@ import {
 } from "../../store/hooks"
 import type { TodoId } from "../../store/schema"
 
-export default function TaskRow({
+// The row's visual card. Rendered inside the sortable row, and also directly
+// inside the DragOverlay (overlay) — it reads by id, so both stay in sync.
+export function TaskRowCard({
+  overlay = false,
+  placeholder = false,
   showProject = false,
   todoId,
 }: {
+  overlay?: boolean
+  placeholder?: boolean
   showProject?: boolean
   todoId: TodoId
 }) {
@@ -29,17 +38,26 @@ export default function TaskRow({
     return null
   }
 
+  const cardClass = placeholder
+    ? "border-transparent bg-neutral-100"
+    : overlay
+      ? "border-neutral-200 bg-white shadow-lg"
+      : "border-neutral-200"
+  const contentClass = placeholder ? "invisible" : ""
+
   return (
-    <li className="flex items-center gap-3 rounded-lg border border-neutral-200 p-3">
+    <div
+      className={`flex items-center gap-3 rounded-lg border p-3 ${cardClass}`}
+    >
       <input
         aria-label={`Mark ${title} complete`}
         checked={isCompleted}
-        className="size-4 accent-neutral-900"
+        className={`size-4 accent-neutral-900 ${contentClass}`}
         onChange={toggleTodo}
         type="checkbox"
       />
       <span
-        className={`flex-1 ${
+        className={`flex-1 ${contentClass} ${
           isCompleted ? "text-neutral-400 line-through" : "text-neutral-800"
         }`}
       >
@@ -52,12 +70,49 @@ export default function TaskRow({
       </span>
       <button
         aria-label={`Delete ${title}`}
-        className="text-sm text-neutral-400 transition hover:text-red-600"
+        className={`text-sm text-neutral-400 transition hover:text-red-600 ${contentClass}`}
         onClick={deleteTodo}
         type="button"
       >
         Delete
       </button>
+    </div>
+  )
+}
+
+export default function TaskRow({
+  showProject = false,
+  todoId,
+}: {
+  showProject?: boolean
+  todoId: TodoId
+}) {
+  const {
+    attributes,
+    isDragging,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: todoId })
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <li
+      ref={setNodeRef}
+      className="touch-none"
+      style={style}
+      {...attributes}
+      {...listeners}
+    >
+      <TaskRowCard
+        placeholder={isDragging}
+        showProject={showProject}
+        todoId={todoId}
+      />
     </li>
   )
 }
