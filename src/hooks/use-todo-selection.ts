@@ -1,4 +1,3 @@
-import { useCallback } from "react"
 import { useDb, useValue } from "../store/hooks"
 import type { PaneId, TodoId } from "../store/schema"
 
@@ -12,18 +11,15 @@ export function useIsTodoSelected(paneId: PaneId, todoId: TodoId): boolean {
 // app-wide selection when passed null.
 export function useSelectTodo(paneId: PaneId) {
   const { store } = useDb()
-  return useCallback(
-    (todoId: TodoId | null) => {
-      store.transaction(() => {
-        if (todoId === null) {
-          store.delValue("selectedTodoId")
-          store.delValue("selectedTodoPaneId")
-        } else {
-          store.setValue("selectedTodoId", todoId)
-          store.setValue("selectedTodoPaneId", paneId)
-        }
-      })
-    },
-    [paneId, store],
-  )
+  return (todoId: TodoId | null) => {
+    store.transaction(() => {
+      if (todoId === null) {
+        store.delValue("selectedTodoId")
+        store.delValue("selectedTodoPaneId")
+      } else {
+        store.setValue("selectedTodoId", todoId)
+        store.setValue("selectedTodoPaneId", paneId)
+      }
+    })
+  }
 }

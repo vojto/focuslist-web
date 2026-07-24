@@ -1,4 +1,3 @@
-import { useCallback } from "react"
 import { useDb, useValue } from "../store/hooks"
 import type { ListId } from "../store/schema"
 
@@ -10,14 +9,11 @@ export function useSelectedProjectId(): ListId | undefined {
 // passed undefined.
 export function useSelectProject() {
   const { store } = useDb()
-  return useCallback(
-    (projectId: ListId | undefined) => {
-      if (projectId === undefined) {
-        store.delValue("selectedProjectId")
-      } else {
-        store.setValue("selectedProjectId", projectId)
-      }
-    },
-    [store],
-  )
+  return (projectId: ListId | undefined) => {
+    if (projectId === undefined) {
+      store.delValue("selectedProjectId")
+    } else {
+      store.setValue("selectedProjectId", projectId)
+    }
+  }
 }
