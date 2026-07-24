@@ -38,7 +38,9 @@ export function TaskRowCard({
   const cardClass = isSelected ? "bg-blue-50" : ""
 
   return (
-    <div className={`flex items-center gap-3 rounded-lg p-3 ${cardClass}`}>
+    <div
+      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${cardClass}`}
+    >
       <input
         aria-label={`Mark ${title} complete`}
         checked={isCompleted}

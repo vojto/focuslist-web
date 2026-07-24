@@ -1,4 +1,6 @@
-const { chromium } = require("/Users/vojto/Code/Active/focustask/node_modules/playwright")
+const {
+  chromium,
+} = require("/Users/vojto/Code/Active/focustask/node_modules/playwright")
 
 async function main() {
   const browser = await chromium.launch()
@@ -6,7 +8,10 @@ async function main() {
   const errors = []
   page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`))
   page.on("console", (m) => {
-    { if (m.type() === "error") errors.push(`console: ${m.text()}`); if (m.text().startsWith("[dnd]")) console.log(m.text()) }
+    {
+      if (m.type() === "error") errors.push(`console: ${m.text()}`)
+      if (m.text().startsWith("[dnd]")) console.log(m.text())
+    }
   })
 
   await page.goto("http://localhost:5174")
@@ -38,11 +43,16 @@ async function main() {
   // Alpha), because the collision snaps to the nearest row.
   const source = await projectPane.getByText("Dragged").boundingBox()
   const paneBox = await todayPane.boundingBox()
-  const alphaBox = await todayPane.locator("li", { hasText: "Alpha" }).boundingBox()
+  const alphaBox = await todayPane
+    .locator("li", { hasText: "Alpha" })
+    .boundingBox()
   const targetX = paneBox.x + 12 // inside the pane, left padding — no row here
   const targetY = alphaBox.y + 4 // upper part of the first row's height
 
-  await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2)
+  await page.mouse.move(
+    source.x + source.width / 2,
+    source.y + source.height / 2,
+  )
   await page.mouse.down()
   await page.mouse.move(source.x + 20, source.y + 10, { steps: 4 })
   await page.mouse.move(targetX, targetY, { steps: 15 })
