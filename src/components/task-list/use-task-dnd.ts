@@ -128,7 +128,10 @@ export function useTaskDnd(visibleListIds: readonly ListId[]) {
   const handleDragEnd = (event: DragEndEvent) => {
     if (event.canceled) {
       if (preDragCheckpointRef.current !== null) {
+        // goTo seals the aborted mid-drag changes into a forward (redo)
+        // checkpoint; clear it so redo can't re-apply the canceled drag.
         checkpoints?.goTo(preDragCheckpointRef.current)
+        checkpoints?.clearForward()
       }
       return
     }
