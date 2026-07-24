@@ -14,6 +14,7 @@ import {
   INITIAL_CONTENT,
   STORE_ID,
   TODAY_LIST_ID,
+  TODAY_LIST_ROW,
 } from "./schema"
 
 // Creates the store, its indexes, and persistence, and provides them to the
@@ -39,11 +40,7 @@ export default function StoreProvider({ children }: { children: ReactNode }) {
       // The Today list is a structural invariant, not just first-run seed
       // data — restore it even if persisted data was damaged or predates it.
       if (!persister.getStore().hasRow("lists", TODAY_LIST_ID)) {
-        persister.getStore().setRow("lists", TODAY_LIST_ID, {
-          kind: "today",
-          name: "Today",
-          position: 0,
-        })
+        persister.getStore().setRow("lists", TODAY_LIST_ID, TODAY_LIST_ROW)
       }
       await persister.startAutoSave()
       setIsReady(true)
