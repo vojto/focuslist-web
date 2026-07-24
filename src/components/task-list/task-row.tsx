@@ -33,7 +33,7 @@ function useTodoCompletion(todoId: TodoId) {
 // The row's visual card. It reads by id, so every rendering stays in sync.
 // Children replace the title label (the edit input slots in here) so the
 // row keeps identical dimensions in both modes.
-export function TaskRowCard({
+function TaskRowCard({
   children,
   isEditing = false,
   isSelected = false,

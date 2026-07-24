@@ -79,6 +79,20 @@ function commitRowHover(
   }
 }
 
+// Shared guard for the drag handlers: only drags of real todos with a
+// current target are acted on.
+function todoDragOperands(db: Db, event: DragOverEvent | DragMoveEvent) {
+  const { source, target } = event.operation
+  if (source == null || target == null) {
+    return null
+  }
+  const todoId = String(source.id)
+  if (!db.store.hasRow("todos", todoId)) {
+    return null
+  }
+  return { targetId: String(target.id), todoId }
+}
+
 export function useTaskDnd(visibleListIds: readonly ListId[]) {
   const db = useDb()
   const checkpoints = useCheckpoints()
@@ -89,15 +103,11 @@ export function useTaskDnd(visibleListIds: readonly ListId[]) {
   }
 
   const handleDragOver = (event: DragOverEvent, manager: DragDropManager) => {
-    const { source, target } = event.operation
-    if (source == null || target == null) {
+    const operands = todoDragOperands(db, event)
+    if (operands === null) {
       return
     }
-    const todoId = String(source.id)
-    if (!db.store.hasRow("todos", todoId)) {
-      return
-    }
-    const targetId = String(target.id)
+    const { targetId, todoId } = operands
     if (visibleListIds.includes(targetId)) {
       commitPaneHover(db, manager, event, targetId, todoId)
     } else {
@@ -109,14 +119,9 @@ export function useTaskDnd(visibleListIds: readonly ListId[]) {
   // hovering a pane the implied slot follows the pointer with no target
   // change — so pane hovers also commit on every dragmove.
   const handleDragMove = (event: DragMoveEvent, manager: DragDropManager) => {
-    const { source, target } = event.operation
-    if (source == null || target == null) {
-      return
-    }
-    const todoId = String(source.id)
-    const targetId = String(target.id)
-    if (visibleListIds.includes(targetId) && db.store.hasRow("todos", todoId)) {
-      commitPaneHover(db, manager, event, targetId, todoId)
+    const operands = todoDragOperands(db, event)
+    if (operands !== null && visibleListIds.includes(operands.targetId)) {
+      commitPaneHover(db, manager, event, operands.targetId, operands.todoId)
     }
   }
 

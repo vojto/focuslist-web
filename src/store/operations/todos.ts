@@ -19,12 +19,12 @@ function insertPosition(
 ): number {
   const ids = todoIdsIn(db, listId).filter((id) => id !== excludeTodoId)
   const nextId = index === undefined ? undefined : ids[index]
-  if (nextId === undefined) {
+  if (index === undefined || nextId === undefined) {
     const lastId = ids.at(-1)
     return lastId === undefined ? 1 : positionOf(db, lastId) + 1
   }
   const next = positionOf(db, nextId)
-  const previousId = index === 0 ? undefined : ids[(index ?? 0) - 1]
+  const previousId = ids[index - 1]
   return previousId === undefined
     ? next - 1
     : (positionOf(db, previousId) + next) / 2
