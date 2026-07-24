@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useIsPaneEditing } from "../../hooks/use-todo-editing"
 import { useCell, useDb } from "../../store/hooks"
 import { addTodo } from "../../store/operations/todos"
 import type { ListId, PaneId } from "../../store/schema"
@@ -18,16 +19,23 @@ export default function TaskListPane({
   const kind = useCell("lists", listId, "kind")
   const name = useCell("lists", listId, "name")
   const [isCreating, setIsCreating] = useState(false)
+  const isEditing = useIsPaneEditing(paneId)
   const isToday = kind === "today"
 
   return (
-    <section className="flex h-full min-h-0 min-w-0 flex-col bg-white">
+    <section
+      className={`flex h-full min-h-0 min-w-0 flex-col transition-colors duration-100 ${
+        isEditing ? "bg-neutral-50" : "bg-white"
+      }`}
+    >
       <ContextMenu
         trigger={
           <div className="flex min-h-0 flex-1 flex-col">
             <TaskList
               header={
-                <header className="mb-8 flex items-center gap-2">
+                // px-3 matches the task card's own padding, so the title
+                // text lines up with the checkboxes below it.
+                <header className="mb-8 flex items-center gap-2 px-3">
                   {isToday && (
                     <span aria-hidden="true" className="text-xl text-amber-500">
                       ★
@@ -50,7 +58,8 @@ export default function TaskListPane({
         </ContextMenuItem>
       </ContextMenu>
 
-      <footer className="h-12 shrink-0 border-t border-neutral-200 bg-white p-2">
+      {/* No own background so the pane's edit-mode tint covers it too. */}
+      <footer className="h-12 shrink-0 border-t border-neutral-200 p-2">
         <ToolbarButton onClick={() => setIsCreating(true)}>
           <span aria-hidden="true">＋</span>
           New task

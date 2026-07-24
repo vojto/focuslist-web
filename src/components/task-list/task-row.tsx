@@ -1,25 +1,35 @@
+import { type ReactNode, useCallback, useState } from "react"
 import { Feedback } from "@dnd-kit/dom"
 import { SortableKeyboardPlugin } from "@dnd-kit/dom/sortable"
 import { useSortable } from "@dnd-kit/react/sortable"
+import { useBroadcastTodoEditing } from "../../hooks/use-todo-editing"
 import {
   useIsTodoSelected,
   useSelectTodo,
 } from "../../hooks/use-todo-selection"
 import {
   useCell,
+  useDb,
   useDelRowCallback,
   useSetCellCallback,
 } from "../../store/hooks"
+import { renameTodo } from "../../store/operations/todos"
 import type { ListId, PaneId, TodoId } from "../../store/schema"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
 
 // The row's visual card. It reads by id, so every rendering stays in sync.
+// Children replace the title label (the edit input slots in here) so the
+// row keeps identical dimensions in both modes.
 export function TaskRowCard({
+  children,
+  isEditing = false,
   isSelected = false,
   // showProject is temporarily unused while the project badge is commented
   // out below.
   todoId,
 }: {
+  children?: ReactNode
+  isEditing?: boolean
   isSelected?: boolean
   showProject?: boolean
   todoId: TodoId
@@ -40,31 +50,41 @@ export function TaskRowCard({
     return null
   }
 
-  const cardClass = isSelected ? "bg-indigo-50" : ""
+  // The transition class rides along only in the editing state, so entering
+  // edit mode animates but selection changes snap. It's scoped to
+  // color/shadow — transitioning transform would fight the FLIP reorder
+  // animation.
+  const cardClass = isEditing
+    ? "bg-white shadow-md transition-[background-color,box-shadow] duration-100"
+    : isSelected
+      ? "bg-indigo-50"
+      : ""
 
   return (
     <div
-      className={`flex cursor-default select-none items-center gap-3 rounded-lg px-3 py-2 text-sm ${cardClass}`}
+      className={`flex cursor-default select-none items-center gap-2.5 rounded-lg px-3 py-2 text-sm ${cardClass}`}
     >
       <input
         aria-label={`Mark ${title} complete`}
         checked={isCompleted}
-        className="size-4 accent-neutral-900"
+        className="size-4 shrink-0 appearance-none rounded border border-neutral-300 bg-white bg-cover bg-center bg-no-repeat transition-colors duration-100 checked:border-blue-500 checked:bg-blue-500 checked:bg-checkmark"
         onChange={toggleTodo}
         type="checkbox"
       />
-      <span
-        className={`flex-1 ${
-          isCompleted ? "text-neutral-400 line-through" : "text-neutral-800"
-        }`}
-      >
-        {title}
-        {/* {showProject && projectName !== undefined && (
-          <span className="ml-2 rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
-            {projectName}
-          </span>
-        )} */}
-      </span>
+      {children ?? (
+        <span
+          className={`flex-1 ${
+            isCompleted ? "text-neutral-400 line-through" : "text-neutral-800"
+          }`}
+        >
+          {title}
+          {/* {showProject && projectName !== undefined && (
+            <span className="ml-2 rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
+              {projectName}
+            </span>
+          )} */}
+        </span>
+      )}
     </div>
   )
 }
@@ -82,8 +102,13 @@ export default function TaskRow({
   showProject?: boolean
   todoId: TodoId
 }) {
+  const db = useDb()
   const isSelected = useIsTodoSelected(paneId, todoId)
   const selectTodo = useSelectTodo(paneId)
+  const title = useCell("todos", todoId, "title")
+  const [isEditing, setIsEditing] = useState(false)
+  const [draft, setDraft] = useState("")
+  useBroadcastTodoEditing(paneId, isEditing)
   // While dragging, the library floats the real row (data-dnd-dragging) and
   // keeps a cloned stand-in in the list flow (data-dnd-placeholder); the
   // data variants below style those two states. Every placement change
@@ -111,6 +136,36 @@ export default function TaskRow({
     ],
   })
   const deleteTodo = useDelRowCallback("todos", todoId)
+  const isCompleted = useCell("todos", todoId, "isCompleted") === true
+  const toggleTodo = useSetCellCallback(
+    "todos",
+    todoId,
+    "isCompleted",
+    () => (wasCompleted) => !wasCompleted,
+    [],
+  )
+
+  const startEditing = () => {
+    setDraft(title ?? "")
+    setIsEditing(true)
+  }
+
+  const commitEdit = () => {
+    setIsEditing(false)
+    const trimmed = draft.trim()
+    if (trimmed !== "" && trimmed !== title) {
+      renameTodo(db, todoId, trimmed)
+    }
+  }
+
+  // Stable identity so the ref only runs when the input mounts, not on every
+  // keystroke re-render.
+  const initEditInput = useCallback((node: HTMLInputElement | null) => {
+    if (node !== null) {
+      node.focus()
+      node.setSelectionRange(node.value.length, node.value.length)
+    }
+  }, [])
 
   return (
     <ContextMenu
@@ -128,6 +183,13 @@ export default function TaskRow({
           // already selected when a drag starts, and stays highlighted
           // while dragged.
           onPointerDown={() => selectTodo(todoId)}
+          // The guard keeps a fast double-toggle of the checkbox from
+          // dropping the row into edit mode.
+          onDoubleClick={(event) => {
+            if (!(event.target instanceof HTMLInputElement)) {
+              startEditing()
+            }
+          }}
           // The pane behind us opens its own menu on background right-clicks;
           // keep row right-clicks from reaching it so only the row menu opens.
           onContextMenu={(event) => event.stopPropagation()}
@@ -137,14 +199,39 @@ export default function TaskRow({
             }
           }}
         >
+          {/* Both modes render the same element tree — a branch returning a
+              different wrapper would remount the row and kill the css
+              transition into edit mode. */}
           <TaskRowCard
+            isEditing={isEditing}
             isSelected={isSelected}
             showProject={showProject}
             todoId={todoId}
-          />
+          >
+            {isEditing ? (
+              <input
+                ref={initEditInput}
+                className="min-w-0 flex-1 select-text bg-transparent p-0 text-neutral-800 outline-none"
+                onBlur={commitEdit}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  event.stopPropagation()
+                  if (event.key === "Enter") {
+                    commitEdit()
+                  } else if (event.key === "Escape") {
+                    setIsEditing(false)
+                  }
+                }}
+                value={draft}
+              />
+            ) : undefined}
+          </TaskRowCard>
         </li>
       }
     >
+      <ContextMenuItem onClick={toggleTodo}>
+        {isCompleted ? "Mark incomplete" : "Mark complete"}
+      </ContextMenuItem>
       <ContextMenuItem danger onClick={deleteTodo}>
         Delete
       </ContextMenuItem>

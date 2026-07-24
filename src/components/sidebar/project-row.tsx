@@ -54,7 +54,7 @@ export default function ProjectRow({
   const initEditInput = useCallback((node: HTMLInputElement | null) => {
     if (node !== null) {
       node.focus()
-      node.setSelectionRange(0, node.value.length)
+      node.setSelectionRange(node.value.length, node.value.length)
     }
   }, [])
 

@@ -38,7 +38,7 @@ export default function TaskList({
 
   return (
     <div
-      className="flex-1 overflow-y-auto p-8"
+      className="flex-1 overflow-y-auto px-5 py-8"
       ref={ref}
       // Deselect on presses that land outside any row; row presses bubble
       // up here but have already selected via the row's own handler.

@@ -38,6 +38,9 @@ export const VALUES_SCHEMA = {
   // One value pair means two panes can never both hold a selection.
   selectedTodoId: { type: "string" },
   selectedTodoPaneId: { type: "string" },
+  // The pane whose todo is currently in inline edit mode; absent when none
+  // is. Lets the pane tint its background while a row is being edited.
+  editingTodoPaneId: { type: "string" },
 } as const
 
 export type Schemas = [typeof TABLES_SCHEMA, typeof VALUES_SCHEMA]

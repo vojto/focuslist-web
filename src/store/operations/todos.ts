@@ -44,6 +44,10 @@ export function addTodo(db: Db, listId: ListId, title: string) {
   })
 }
 
+export function renameTodo(db: Db, todoId: TodoId, title: string) {
+  db.store.setCell("todos", todoId, "title", title)
+}
+
 // Moves a todo into a list at the given position (append when omitted).
 // Moving into a project reassigns belonging (projectId); moving onto Today
 // only changes placement — the todo still belongs to its project.
