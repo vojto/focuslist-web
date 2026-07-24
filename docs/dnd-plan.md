@@ -55,34 +55,50 @@ Notes:
   (worst case a refresh mid-drag lands on the drag's latest hover position).
 - Checkpoints also give us app-wide undo/redo nearly for free later.
 
-## Step 1 — Drag data + a single DndContext
+## No drag data — ids are enough
+
+Focustask attaches a typed `DragData` union to every draggable/droppable and
+validates it at runtime. We deliberately don't: our dnd-kit ids ARE store row
+ids, and the store already knows everything the handlers need.
+
+- `active.id` → the dragged todo.
+- `over.id` → `hasRow("todos", id)`? it's a todo — its list is
+  `getCell(..., "listId")`, its index is `indexOf` in that list's slice.
+  Otherwise `hasRow("lists", id)`? it's a pane's empty-area droppable —
+  target list, append.
+
+No payloads, no guard module. The store is the drag data.
+
+Same-list and cross-list moves are intentionally one code path: every
+dragOver target change is the same `moveTodo` call. Within-pane reordering is
+not a separate feature — it falls out.
+
+## Step 1 — Generic pane first
+
+- Merge `TodayPane` / `ProjectPane` into `TaskListPane({ listId })`; per-kind
+  header config (star + "Today" vs. project name). They already render the
+  same slice-of-ids shape, and doing this first means the DnD wiring is
+  written once, not twice and then refactored.
+- `FocusScreen` renders panes from an array of list ids (Today + the routed
+  project for now). Future splits (two projects, a Delegated list) are changes
+  to that array only.
+
+## Step 2 — Live re-homing
 
 - One `DndContext` in `FocusScreen` wrapping both panes (required for
   cross-pane drags). The sidebar's project-reorder `DndContext` stays
   separate.
-- A typed `DragData` union with a runtime guard (`getDragData`), following
-  focustask's `src/components/drag-and-drop/card-dnd.ts`:
-  - `{ type: "todo", todoId, listId }` — on every task row (`useSortable`).
-  - `{ type: "list", listId }` — on every pane's task area (`useDroppable`),
-    so drops work on empty lists and below the last row.
-- Row ids (`todo-…`) are globally unique, so they serve directly as sortable
-  ids. Each pane renders a `SortableContext` over its slice's row ids.
-
-## Step 2 — Live re-homing
-
-The DnD hook (`useTaskDnd`, colocated with `FocusScreen`) holds only:
-
-- the active drag's `todoId` (for the `DragOverlay`), and
-- the pre-drag checkpoint id.
-
-Handlers:
-
-- `onDragStart`: record checkpoint + active todo.
-- `onDragOver`: resolve the target (over a todo → that todo's `listId` and
-  index within its slice; over a list area → append) and call `moveTodo`.
-  Guard: skip if the todo is already at the target position.
-- `onDragEnd`: `addCheckpoint("move task")`, clear active state.
-- `onDragCancel`: `goTo(preDragCheckpointId)`, clear active state.
+- Each `TaskListPane` renders a `SortableContext` over its slice's row ids,
+  plus a `useDroppable` (id = its list id) on the task area so drops work on
+  empty lists and below the last row.
+- The DnD hook (`useTaskDnd`, colocated with `FocusScreen`) holds only the
+  active drag's `todoId` (for the `DragOverlay`) and the pre-drag checkpoint
+  id. Handlers:
+  - `onDragStart`: record checkpoint + active todo.
+  - `onDragOver`: resolve the target from `over.id` (see above) and call
+    `moveTodo`. Guard: skip if the todo is already at the target position.
+  - `onDragEnd`: `addCheckpoint("move task")`, clear active state.
+  - `onDragCancel`: `goTo(preDragCheckpointId)`, clear active state.
 - `DragOverlay` renders the floating row (`TaskRow` reads by id, so the
   overlay is just `<TaskRow todoId={activeTodoId} />` styled as a card); the
   in-list original renders as a placeholder while dragging.
@@ -94,15 +110,7 @@ behavior feels off (dropping into a pane's padding below the last card), port
 focustask's `createCardCollisionDetection` + `resolveCellPaddingCollisions`
 (`card-dnd.ts`), which solve exactly this.
 
-## Step 4 — Generic panes, configurable splits
-
-- Merge `TodayPane` / `ProjectPane` into `TaskListPane({ listId })`; per-kind
-  header config (star + "Today" vs. project name).
-- `FocusScreen` renders panes from an array of list ids (Today + the routed
-  project for now). Future splits (two projects, a Delegated list) are changes
-  to that array only.
-
-## Step 5 — Today-pane extras
+## Step 4 — Today-pane extras
 
 - Project badge on Today rows (done — driven by `projectId`).
 - Right-click context menu on Today rows → "Unschedule": calls
@@ -115,3 +123,6 @@ focustask's `createCardCollisionDetection` + `resolveCellPaddingCollisions`
   (focustask does this in `use-board-planner-dnd.tsx`).
 - App-wide undo/redo UI on top of the same checkpoints.
 - Auto-scroll tuning inside panes for long lists.
+- Renumber a list's positions on drop if fractional midpoints ever get
+  pathologically small (repeated inserts into the same gap halve the
+  interval; irrelevant at hundreds of todos, easy fix if ever needed).
