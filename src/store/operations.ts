@@ -86,6 +86,20 @@ export function addProject(db: Db, name: string): ListId {
   return id
 }
 
+// Deleting a project removes every todo that belongs to it, including todos
+// currently scheduled onto Today — belonging is exclusive, so they have no
+// other home.
+export function deleteProject(db: Db, projectId: ListId) {
+  db.store.transaction(() => {
+    db.store.getRowIds("todos").forEach((todoId) => {
+      if (db.store.getCell("todos", todoId, "projectId") === projectId) {
+        db.store.delRow("todos", todoId)
+      }
+    })
+    db.store.delRow("lists", projectId)
+  })
+}
+
 export function reorderProjects(db: Db, orderedIds: readonly ListId[]) {
   db.store.transaction(() => {
     orderedIds.forEach((listId, index) => {
