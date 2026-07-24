@@ -1,8 +1,8 @@
 import type { CSSProperties } from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { useCell } from "../../db"
-import type { ListId } from "../../types"
+import { useCell } from "../../store/hooks"
+import type { ListId } from "../../store/schema"
 import ProjectRowPreview from "./project-row-preview"
 
 export default function ProjectRow({

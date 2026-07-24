@@ -1,12 +1,13 @@
 import { useState } from "react"
-import { useCell, useSliceRowIds } from "../../db"
+import { useCell, useDb, useSliceRowIds } from "../../store/hooks"
 import { useSelectedProjectId } from "../../hooks/use-selected-project"
-import { addTodo } from "../../lib/task-operations"
+import { addTodo } from "../../store/operations"
 import ToolbarButton from "../../ui/toolbar-button"
 import NewTaskDialog from "./new-task-dialog"
 import TaskRow from "./task-row"
 
 export default function ProjectPane() {
+  const db = useDb()
   const selectedProjectId = useSelectedProjectId()
   const projectName = useCell("lists", selectedProjectId ?? "", "name")
   const todoIds = useSliceRowIds("todosByList", selectedProjectId ?? "")
@@ -59,7 +60,7 @@ export default function ProjectPane() {
       {isCreating && project && (
         <NewTaskDialog
           onClose={() => setIsCreating(false)}
-          onCreate={(title) => addTodo(project.id, title)}
+          onCreate={(title) => addTodo(db, project.id, title)}
         />
       )}
     </section>

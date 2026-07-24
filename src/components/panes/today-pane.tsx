@@ -1,11 +1,13 @@
 import { useState } from "react"
-import { TODAY_LIST_ID, useSliceRowIds } from "../../db"
-import { addTodo } from "../../lib/task-operations"
+import { useDb, useSliceRowIds } from "../../store/hooks"
+import { addTodo } from "../../store/operations"
+import { TODAY_LIST_ID } from "../../store/schema"
 import ToolbarButton from "../../ui/toolbar-button"
 import NewTaskDialog from "./new-task-dialog"
 import TaskRow from "./task-row"
 
 export default function TodayPane() {
+  const db = useDb()
   const todoIds = useSliceRowIds("todosByList", TODAY_LIST_ID)
   const [isCreating, setIsCreating] = useState(false)
 
@@ -38,7 +40,7 @@ export default function TodayPane() {
       {isCreating && (
         <NewTaskDialog
           onClose={() => setIsCreating(false)}
-          onCreate={(title) => addTodo(TODAY_LIST_ID, title)}
+          onCreate={(title) => addTodo(db, TODAY_LIST_ID, title)}
         />
       )}
     </section>

@@ -1,10 +1,10 @@
-import { db, indexes, Provider } from "./db"
 import FocusScreen from "./screens/focus-screen"
+import StoreProvider from "./store/store-provider"
 
 export default function App() {
   return (
-    <Provider indexes={indexes} store={db}>
+    <StoreProvider>
       <FocusScreen />
-    </Provider>
+    </StoreProvider>
   )
 }

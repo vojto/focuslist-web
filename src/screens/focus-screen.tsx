@@ -2,7 +2,7 @@ import { useState } from "react"
 import ProjectPane from "../components/panes/project-pane"
 import Sidebar from "../components/sidebar/sidebar"
 import TodayPane from "../components/panes/today-pane"
-import { useUiStore } from "../stores/use-ui-store"
+import { useSetValueCallback, useValue } from "../store/hooks"
 import PaneSeparator from "../ui/pane-separator"
 
 const MIN_SIDEBAR_WIDTH = 176
@@ -15,10 +15,18 @@ function clamp(value: number, minimum: number, maximum: number) {
 }
 
 export default function FocusScreen() {
-  const storedSidebarWidth = useUiStore((state) => state.sidebarWidth)
-  const storedProjectWidth = useUiStore((state) => state.projectWidth)
-  const storeSidebarWidth = useUiStore((state) => state.setSidebarWidth)
-  const storeProjectWidth = useUiStore((state) => state.setProjectWidth)
+  const storedSidebarWidth = useValue("sidebarWidth")
+  const storedProjectWidth = useValue("projectWidth")
+  const storeSidebarWidth = useSetValueCallback(
+    "sidebarWidth",
+    (width: number) => width,
+    [],
+  )
+  const storeProjectWidth = useSetValueCallback(
+    "projectWidth",
+    (width: number) => width,
+    [],
+  )
   const [sidebarWidth, setSidebarWidth] = useState(storedSidebarWidth)
   const [projectWidth, setProjectWidth] = useState(storedProjectWidth)
 

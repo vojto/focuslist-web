@@ -1,11 +1,13 @@
 import { useState } from "react"
 import { useSelectProject } from "../../hooks/use-selected-project"
-import { addProject } from "../../lib/task-operations"
+import { useDb } from "../../store/hooks"
+import { addProject } from "../../store/operations"
 import ToolbarButton from "../../ui/toolbar-button"
 import NewProjectDialog from "./new-project-dialog"
 import ProjectList from "./project-list"
 
 export default function Sidebar() {
+  const db = useDb()
   const selectProject = useSelectProject()
   const [isCreating, setIsCreating] = useState(false)
 
@@ -38,7 +40,7 @@ export default function Sidebar() {
         <NewProjectDialog
           onClose={() => setIsCreating(false)}
           onCreate={(name) => {
-            selectProject(addProject(name))
+            selectProject(addProject(db, name))
           }}
         />
       )}

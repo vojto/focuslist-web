@@ -11,7 +11,7 @@ checkpoint insight" below).
 
 ## Foundation (done in the TinyBase rewrite)
 
-The data layer is a TinyBase store (`src/db.ts`) — synchronous, reactive,
+The data layer is a TinyBase store (`src/store/`) — synchronous, reactive,
 persisted to localStorage (swap for the SQLite persister when the app moves to
 Tauri). Two tables, SQL-style:
 
@@ -28,8 +28,8 @@ Tauri). Two tables, SQL-style:
 
 Each pane renders an index slice (`useSliceRowIds("todosByList", listId)`) —
 the ordered id array that dnd-kit's `SortableContext` wants, kept reactive by
-TinyBase. All mutations live in `src/lib/task-operations.ts`; the key one is
-`moveTodo(todoId, targetListId, index?)`, which computes the fractional
+TinyBase. All mutations live in `src/store/operations.ts`; the key one is
+`moveTodo(db, todoId, targetListId, index?)`, which computes the fractional
 position and updates `listId`/`position`/`projectId` in one transaction.
 
 ## The checkpoint insight (what TinyBase changes)

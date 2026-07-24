@@ -1,6 +1,9 @@
-import { useCell } from "../../db"
-import { deleteTodo, toggleTodo } from "../../lib/task-operations"
-import type { TodoId } from "../../types"
+import {
+  useCell,
+  useDelRowCallback,
+  useSetCellCallback,
+} from "../../store/hooks"
+import type { TodoId } from "../../store/schema"
 
 export default function TaskRow({
   showProject = false,
@@ -13,6 +16,14 @@ export default function TaskRow({
   const isCompleted = useCell("todos", todoId, "isCompleted") === true
   const projectId = useCell("todos", todoId, "projectId")
   const projectName = useCell("lists", projectId ?? "", "name")
+  const toggleTodo = useSetCellCallback(
+    "todos",
+    todoId,
+    "isCompleted",
+    () => (wasCompleted) => !wasCompleted,
+    [],
+  )
+  const deleteTodo = useDelRowCallback("todos", todoId)
 
   if (title === undefined) {
     return null
@@ -24,7 +35,7 @@ export default function TaskRow({
         aria-label={`Mark ${title} complete`}
         checked={isCompleted}
         className="size-4 accent-neutral-900"
-        onChange={() => toggleTodo(todoId)}
+        onChange={toggleTodo}
         type="checkbox"
       />
       <span
@@ -42,7 +53,7 @@ export default function TaskRow({
       <button
         aria-label={`Delete ${title}`}
         className="text-sm text-neutral-400 transition hover:text-red-600"
-        onClick={() => deleteTodo(todoId)}
+        onClick={deleteTodo}
         type="button"
       >
         Delete

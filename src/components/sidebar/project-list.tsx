@@ -14,16 +14,17 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { useState } from "react"
-import { useCell, useSliceRowIds } from "../../db"
+import { useCell, useDb, useSliceRowIds } from "../../store/hooks"
 import {
   useSelectedProjectId,
   useSelectProject,
 } from "../../hooks/use-selected-project"
-import { reorderProjects } from "../../lib/task-operations"
+import { reorderProjects } from "../../store/operations"
 import ProjectRow from "./project-row"
 import ProjectRowPreview from "./project-row-preview"
 
 export default function ProjectList() {
+  const db = useDb()
   const projectIds = useSliceRowIds("listsByKind", "project")
   const selectedProjectId = useSelectedProjectId()
   const selectProject = useSelectProject()
@@ -46,7 +47,7 @@ export default function ProjectList() {
     if (activeIndex === -1 || overIndex === -1 || activeIndex === overIndex) {
       return
     }
-    reorderProjects(arrayMove([...projectIds], activeIndex, overIndex))
+    reorderProjects(db, arrayMove([...projectIds], activeIndex, overIndex))
   }
   const handleDragCancel = () => {
     setActiveProjectId(null)

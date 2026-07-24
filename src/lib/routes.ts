@@ -1,4 +1,4 @@
-import type { ListId } from "../types"
+import type { ListId } from "../store/schema"
 
 export const projectRoute = "/projects/:id"
 
