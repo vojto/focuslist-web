@@ -9,7 +9,12 @@ import {
   useCreatePersister,
   useCreateStore,
 } from "./hooks"
-import { createAppStore, INITIAL_CONTENT, STORE_ID } from "./schema"
+import {
+  createAppStore,
+  INITIAL_CONTENT,
+  STORE_ID,
+  TODAY_LIST_ID,
+} from "./schema"
 
 // Creates the store, its indexes, and persistence, and provides them to the
 // app. Children render only once persisted data has loaded — loading must
@@ -31,6 +36,15 @@ export default function StoreProvider({ children }: { children: ReactNode }) {
     [],
     async (persister) => {
       await persister.load(INITIAL_CONTENT)
+      // The Today list is a structural invariant, not just first-run seed
+      // data — restore it even if persisted data was damaged or predates it.
+      if (!persister.getStore().hasRow("lists", TODAY_LIST_ID)) {
+        persister.getStore().setRow("lists", TODAY_LIST_ID, {
+          kind: "today",
+          name: "Today",
+          position: 0,
+        })
+      }
       await persister.startAutoSave()
       setIsReady(true)
     },
