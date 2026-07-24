@@ -17,9 +17,14 @@ Drag and drop uses `@dnd-kit/react` 0.5.0. Routing is wouter
   (Playwright required by absolute path from the sibling `focustask`
   checkout). If a DOM change breaks their selectors, adapt the selectors —
   never weaken what they assert. The user runs them.
-- Commit when the user asks, not automatically.
+- Commit and push automatically as work progresses. Once a change is
+  complete and verifying clean, `git add -A && git commit` it with a
+  descriptive message and `git push origin main` — don't wait to be asked.
+  Group each logically-cohesive change into its own commit; don't let
+  unrelated edits pile up uncommitted. The exception is work the user is
+  still actively testing or iterating on — hold the commit until it settles.
 - Verify with `npm run build && npm run lint && npx prettier --check .` —
-  all must pass clean.
+  all must pass clean before committing.
 
 ## React Compiler is enabled
 
