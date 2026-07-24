@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { db } from "../../db"
+import { createProject } from "../../lib/projects"
 import { useUiStore } from "../../stores/ui-store"
 import NewProjectDialog from "./new-project-dialog"
 import ProjectList from "./project-list"
@@ -41,12 +41,7 @@ export default function Sidebar() {
         <NewProjectDialog
           onClose={() => setIsCreating(false)}
           onCreate={async (name) => {
-            const lastProject = await db.projects.orderBy("order").last()
-            const id = await db.projects.add({
-              name,
-              order: (lastProject?.order ?? -1) + 1,
-            })
-            setSelectedProjectId(id)
+            setSelectedProjectId(await createProject(name))
           }}
         />
       )}

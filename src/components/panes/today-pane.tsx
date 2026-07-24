@@ -1,5 +1,5 @@
-import { useLiveQuery } from "dexie-react-hooks"
-import { db, type Todo } from "../../db"
+import type { Todo } from "../../db"
+import { deleteTodo, toggleTodo, useTodos } from "../../lib/todos"
 
 function TaskRow({ todo }: { todo: Todo }) {
   return (
@@ -9,9 +9,7 @@ function TaskRow({ todo }: { todo: Todo }) {
         checked={todo.isCompleted}
         className="size-4 accent-neutral-900"
         onChange={() => {
-          void db.todos.update(todo.id, {
-            isCompleted: !todo.isCompleted,
-          })
+          void toggleTodo(todo)
         }}
         type="checkbox"
       />
@@ -28,7 +26,7 @@ function TaskRow({ todo }: { todo: Todo }) {
         aria-label={`Delete ${todo.title}`}
         className="text-sm text-neutral-400 transition hover:text-red-600"
         onClick={() => {
-          void db.todos.delete(todo.id)
+          void deleteTodo(todo.id)
         }}
         type="button"
       >
@@ -39,7 +37,7 @@ function TaskRow({ todo }: { todo: Todo }) {
 }
 
 export default function TodayPane() {
-  const todos = useLiveQuery(() => db.todos.toArray(), [])
+  const todos = useTodos()
 
   return (
     <section className="flex h-full min-h-0 min-w-0 flex-col bg-white">

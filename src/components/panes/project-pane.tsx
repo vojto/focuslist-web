@@ -1,16 +1,9 @@
-import { useLiveQuery } from "dexie-react-hooks"
-import { db } from "../../db"
+import { useProject } from "../../lib/projects"
 import { useUiStore } from "../../stores/ui-store"
 
 export default function ProjectPane() {
   const selectedProjectId = useUiStore((state) => state.selectedProjectId)
-  const project = useLiveQuery(
-    () =>
-      selectedProjectId === undefined
-        ? undefined
-        : db.projects.get(selectedProjectId),
-    [selectedProjectId],
-  )
+  const project = useProject(selectedProjectId)
 
   return (
     <section className="flex h-full min-h-0 min-w-0 flex-col bg-neutral-50">

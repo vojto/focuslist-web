@@ -24,8 +24,7 @@ automatically at build time. This changes how you should write React here:
   `eslint.config.js`) includes the compiler's lint rules and will flag
   violations — a flagged component is silently skipped by the compiler rather
   than broken, but fix the violation instead of working around it.
-- A function that calls no hooks is not a hook: don't give it a `use` prefix.
-  Plain domain helpers live in `src/lib/` (see `src/lib/reorder-projects.ts`);
+- A function that calls no hooks is not a hook: don't give it a `use` prefix;
   lint flags unnecessary `use` prefixes.
 - If a memoization escape hatch ever seems genuinely necessary, stop and
   reconsider the data flow first; it almost never is in this app.
@@ -47,6 +46,13 @@ automatically at build time. This changes how you should write React here:
   (`src/db.ts`), read reactively via `useLiveQuery`. Ephemeral UI state
   (selection, pane widths) lives in the Zustand store
   (`src/stores/ui-store.ts`). Don't move domain data into Zustand.
+- **Domain layer**: components never touch `db` directly. Each domain has a
+  module in `src/lib/` (`projects.ts`, `todos.ts`) owning both the query
+  hooks (`useProjects()`, `useTodos()` — thin `useLiveQuery` wrappers) and
+  the mutations (`createProject`, `reorderProjects`, `toggleTodo`, …).
+  Domain rules like order assignment live there, not in components. Generic
+  reusable hooks (no domain knowledge) live in `src/hooks/` (e.g.
+  `use-optimistic-order.ts`).
 - **Dexie schema changes** are additive: never edit an existing
   `db.version(n)` block — add a new version with an `.upgrade()` migration.
   Projects carry a persisted `order` field (sidebar ordering); new projects
@@ -58,7 +64,8 @@ automatically at build time. This changes how you should write React here:
   (`sidebar/project-row-preview.tsx`), a thin `useSortable` row wrapper, and a
   `DndContext` in the list component. Follow the same shape for new sortable
   lists. Because Dexie writes land asynchronously, the list must apply the
-  new order synchronously in `onDragEnd` (a pending-order override cleared
-  once the live query catches up — see `sidebar/project-list.tsx`); otherwise
-  the drop animation targets the item's old slot and the list visibly snaps.
+  new order synchronously in `onDragEnd` via `useOptimisticOrder`
+  (`src/hooks/use-optimistic-order.ts`); otherwise the drop animation targets
+  the item's old slot and the list visibly snaps. See
+  `sidebar/project-list.tsx` for the full wiring.
 - Verify with `npx tsc -b && npm run lint && npx prettier --check .`.
