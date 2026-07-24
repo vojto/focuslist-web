@@ -2,6 +2,7 @@ import { DragDropProvider } from "@dnd-kit/react"
 import TaskListPane from "../components/panes/task-list-pane"
 import Sidebar from "../components/sidebar/sidebar"
 import { useSelectedProjectId } from "../hooks/use-selected-project"
+import { useKeyboard } from "../keyboard/use-keyboard"
 import { useCell, useSetValueCallback, useValue } from "../store/hooks"
 import { TODAY_LIST_ID } from "../store/schema"
 import PaneSeparator from "../ui/pane-separator"
@@ -34,6 +35,7 @@ function NoProjectPane() {
 }
 
 export default function FocusScreen() {
+  useKeyboard()
   const sidebarWidth = useValue("sidebarWidth")
   const projectWidth = useValue("projectWidth")
   const storeSidebarWidth = useSetValueCallback(

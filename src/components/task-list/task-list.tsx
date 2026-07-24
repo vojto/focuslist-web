@@ -1,11 +1,31 @@
 import { CollisionPriority } from "@dnd-kit/abstract"
 import { useDroppable } from "@dnd-kit/react"
-import { useRef, type ReactNode } from "react"
+import { useEffect, useRef, type ReactNode } from "react"
+import type { RefObject } from "react"
 import { useFlipList } from "../../hooks/use-flip-list"
 import { useSelectTodo } from "../../hooks/use-todo-selection"
-import { useCell, useSliceRowIds } from "../../store/hooks"
+import { useCell, useSliceRowIds, useValue } from "../../store/hooks"
 import type { ListId, PaneId } from "../../store/schema"
 import TaskRow from "./task-row"
+
+// Keeps a keyboard-moved selection on screen: arrowing past the edge of the
+// pane scrolls it just far enough back into view. The lookup is scoped to
+// this list, so the pane that doesn't hold the selection finds nothing and
+// stays put, and "nearest" makes an already-visible row a no-op — a click
+// never scrolls.
+function useScrollSelectionIntoView(
+  listRef: RefObject<HTMLUListElement | null>,
+) {
+  const selectedTodoId = useValue("selectedTodoId")
+  useEffect(() => {
+    if (selectedTodoId === undefined) {
+      return
+    }
+    listRef.current
+      ?.querySelector(`[data-flip-id="${selectedTodoId}"]`)
+      ?.scrollIntoView({ block: "nearest" })
+  }, [listRef, selectedTodoId])
+}
 
 // The scrollable task area of a pane. The whole area is a drop target so
 // drags land on empty lists and in the padding around the rows; low
@@ -35,6 +55,7 @@ export default function TaskList({
   // re-renders (visible as a crossing flicker).
   const listRef = useRef<HTMLUListElement>(null)
   useFlipList(listRef)
+  useScrollSelectionIntoView(listRef)
 
   return (
     <div
