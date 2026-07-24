@@ -5,8 +5,17 @@
 A local-first todo app ("focuslist"): a Today list plus per-project lists.
 React 19 + Vite + TypeScript (strict, `noUncheckedIndexedAccess`) +
 Tailwind v4. Domain data lives in TinyBase v9, persisted to localStorage.
-Drag and drop uses `@dnd-kit/react` 0.5.0. Routing is wouter
-(`src/lib/routes.ts`); menus/dialogs build on `@base-ui/react`.
+Drag and drop uses `@dnd-kit/react` 0.5.0. There is no router — the
+selected project is a store value (`selectedProjectId`); menus/dialogs
+build on `@base-ui/react`.
+
+## Programming preferences
+
+Apply the "uberskill" in `~/.agents/skills/uberskill` for every coding task
+(implementing, changing, reviewing, or refactoring). Read its `SKILL.md`,
+then the relevant references — always `references/general-programming.md`,
+plus `references/typescript-react.md` for the work in this repo. It governs
+code structure, helper extraction, naming, change scope, and verification.
 
 ## Workflow
 
