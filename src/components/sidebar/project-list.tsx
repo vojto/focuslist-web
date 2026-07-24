@@ -12,7 +12,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { useLiveQuery } from "dexie-react-hooks"
 import { useState } from "react"
 import { db } from "../../db"
-import { useReorderProjects } from "../../hooks/use-reorder-projects"
+import { reorderProjects } from "../../lib/reorder-projects"
 import { useUiStore } from "../../stores/ui-store"
 import ProjectRow from "./project-row"
 import ProjectRowPreview from "./project-row-preview"
@@ -28,7 +28,6 @@ export default function ProjectList() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   )
-  const reorderProjects = useReorderProjects(projects)
   const activeProject =
     activeProjectId === null
       ? undefined
@@ -39,10 +38,14 @@ export default function ProjectList() {
   }
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveProjectId(null)
-    if (event.over === null) {
+    if (event.over === null || projects === undefined) {
       return
     }
-    void reorderProjects(Number(event.active.id), Number(event.over.id))
+    void reorderProjects(
+      projects,
+      Number(event.active.id),
+      Number(event.over.id),
+    )
   }
   const handleDragCancel = () => {
     setActiveProjectId(null)

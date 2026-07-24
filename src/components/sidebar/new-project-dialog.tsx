@@ -6,7 +6,7 @@ export default function NewProjectDialog({
   onCreate,
 }: {
   onClose: () => void
-  onCreate: (name: string) => void
+  onCreate: (name: string) => void | Promise<void>
 }) {
   const [name, setName] = useState("")
 
@@ -30,7 +30,7 @@ export default function NewProjectDialog({
               if (!trimmed) {
                 return
               }
-              onCreate(trimmed)
+              void onCreate(trimmed)
               onClose()
             }}
           >

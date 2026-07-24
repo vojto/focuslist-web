@@ -24,8 +24,9 @@ automatically at build time. This changes how you should write React here:
   `eslint.config.js`) includes the compiler's lint rules and will flag
   violations — a flagged component is silently skipped by the compiler rather
   than broken, but fix the violation instead of working around it.
-- Custom hooks that return functions (see `src/hooks/use-reorder-projects.ts`)
-  also just return plain functions — no `useCallback`.
+- A function that calls no hooks is not a hook: don't give it a `use` prefix.
+  Plain domain helpers live in `src/lib/` (see `src/lib/reorder-projects.ts`);
+  lint flags unnecessary `use` prefixes.
 - If a memoization escape hatch ever seems genuinely necessary, stop and
   reconsider the data flow first; it almost never is in this app.
 
@@ -33,6 +34,15 @@ automatically at build time. This changes how you should write React here:
 
 - **Prettier, no semicolons** — `.prettierrc` sets `semi: false`. Run
   `npm run format` after edits; `prettier --check .` must pass.
+- **Strict, type-aware linting** — ESLint runs typescript-eslint
+  `strictTypeChecked` + `stylisticTypeChecked` (with `projectService`), plus
+  `@eslint-react` and `jsx-a11y`. Practical consequences:
+  - Fire-and-forget promises (Dexie writes in event handlers) must be
+    explicitly discarded: `onClick={() => { void db.todos.delete(id) }}`.
+    Never pass an async function where a `() => void` is expected — widen the
+    prop type to `() => void | Promise<void>` instead.
+  - No non-null assertions (`!`); narrow with a check or throw.
+  - Interactive elements need accessible names (`aria-label` etc.).
 - **State split**: persistent domain data (todos, projects) lives in Dexie
   (`src/db.ts`), read reactively via `useLiveQuery`. Ephemeral UI state
   (selection, pane widths) lives in the Zustand store

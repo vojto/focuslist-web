@@ -8,11 +8,11 @@ function TaskRow({ todo }: { todo: Todo }) {
         aria-label={`Mark ${todo.title} complete`}
         checked={todo.isCompleted}
         className="size-4 accent-neutral-900"
-        onChange={() =>
-          db.todos.update(todo.id, {
+        onChange={() => {
+          void db.todos.update(todo.id, {
             isCompleted: !todo.isCompleted,
           })
-        }
+        }}
         type="checkbox"
       />
       <span
@@ -27,7 +27,9 @@ function TaskRow({ todo }: { todo: Todo }) {
       <button
         aria-label={`Delete ${todo.title}`}
         className="text-sm text-neutral-400 transition hover:text-red-600"
-        onClick={() => db.todos.delete(todo.id)}
+        onClick={() => {
+          void db.todos.delete(todo.id)
+        }}
         type="button"
       >
         Delete
