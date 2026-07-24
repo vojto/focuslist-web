@@ -8,6 +8,11 @@ import type {
 import { useRef } from "react"
 import { useDb, type Db } from "../../store/hooks"
 import { moveTodo } from "../../store/operations/todos"
+import {
+  currentCheckpoint,
+  revertTo,
+  sealUndoStep,
+} from "../../store/operations/undo"
 import type { ListId, TodoId } from "../../store/schema"
 
 // TinyBase stays the source of truth mid-drag: every placement change is
@@ -140,7 +145,10 @@ export function useTaskDnd(visibleListIds: readonly ListId[]) {
   const sourceListIdRef = useRef<ListId | null>(null)
 
   const handleDragStart = (event: DragStartEvent) => {
-    preDragCheckpointRef.current = db.checkpoints.addCheckpoint()
+    // Reading the current checkpoint rather than adding one: the drag has
+    // changed nothing yet, and sealing here would bank the pointerdown's
+    // selection change as an undo step that undoes nothing.
+    preDragCheckpointRef.current = currentCheckpoint(db) ?? null
     const source = event.operation.source
     sourceListIdRef.current =
       source === null
@@ -173,15 +181,12 @@ export function useTaskDnd(visibleListIds: readonly ListId[]) {
   const handleDragEnd = (event: DragEndEvent) => {
     if (event.canceled) {
       if (preDragCheckpointRef.current !== null) {
-        // goTo seals the aborted mid-drag changes into a forward (redo)
-        // checkpoint; clear it so redo can't re-apply the canceled drag.
-        db.checkpoints.goTo(preDragCheckpointRef.current)
-        db.checkpoints.clearForward()
+        revertTo(db, preDragCheckpointRef.current)
       }
       return
     }
     // Seals the whole drag as one undo step (no-op when nothing changed).
-    db.checkpoints.addCheckpoint("Move task")
+    sealUndoStep(db, "Move task")
   }
 
   return { handleDrag, handleDragEnd, handleDragStart }

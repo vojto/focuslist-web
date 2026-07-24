@@ -4,10 +4,14 @@ import TaskListPane from "../components/panes/task-list-pane"
 import Sidebar from "../components/sidebar/sidebar"
 import { useTaskDnd } from "../components/task-list/use-task-dnd"
 import { useSelectedProjectId } from "../hooks/use-selected-project"
-import type { Pane } from "../keyboard/commands"
 import { useKeyboard } from "../keyboard/use-keyboard"
 import { useCell } from "../store/hooks"
-import { PROJECT_PANE_ID, TODAY_LIST_ID, TODAY_PANE_ID } from "../store/schema"
+import {
+  PROJECT_PANE_ID,
+  TODAY_LIST_ID,
+  TODAY_PANE_ID,
+  type Pane,
+} from "../store/schema"
 import PaneSeparator from "../ui/pane-separator"
 import { usePaneWidths } from "./use-pane-widths"
 

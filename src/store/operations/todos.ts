@@ -1,5 +1,6 @@
 import type { Db } from "../hooks"
 import type { ListId, PaneId, TodoId } from "../schema"
+import { moveSelectionOff } from "./selection"
 import { editTodo } from "./ui-state"
 import { asUndoStep } from "./undo"
 
@@ -83,8 +84,14 @@ export function toggleTodoCompletion(db: Db, todoId: TodoId) {
   })
 }
 
+// Stepping the selection off the row is part of deleting it, not part of the
+// keyboard: the row menu deletes too, and it would otherwise leave the
+// selection naming a row that no longer exists. Undo brings the task back
+// without moving the selection again — it is session state, which undo holds
+// still (see ./undo).
 export function deleteTodo(db: Db, todoId: TodoId) {
   asUndoStep(db, "Delete task", () => {
+    moveSelectionOff(db, todoId)
     db.store.delRow("todos", todoId)
   })
 }

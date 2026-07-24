@@ -8,6 +8,7 @@ import {
   useSelectProject,
 } from "../../hooks/use-selected-project"
 import { reorderProjects } from "../../store/operations/lists"
+import { sealUndoStep } from "../../store/operations/undo"
 import ProjectRow from "./project-row"
 
 export default function ProjectList() {
@@ -21,9 +22,6 @@ export default function ProjectList() {
 
   const handleDragStart = () => {
     preDragOrderRef.current = [...projectIds]
-    // Seals anything pending, so the reorder below becomes an undo step of
-    // its own rather than being bundled with what came before it.
-    db.checkpoints.addCheckpoint()
   }
   const handleDragOver = (event: DragOverEvent) => {
     reorderProjects(db, move([...projectIds], event))
@@ -35,7 +33,7 @@ export default function ProjectList() {
       reorderProjects(db, preDragOrderRef.current)
     }
     // Seals the whole drag as one undo step (no-op when nothing changed).
-    db.checkpoints.addCheckpoint("Reorder projects")
+    sealUndoStep(db, "Reorder projects")
     preDragOrderRef.current = null
   }
 

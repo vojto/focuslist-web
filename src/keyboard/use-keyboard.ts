@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { useDb } from "../store/hooks"
-import { COMMANDS, type Pane } from "./commands"
+import type { Pane } from "../store/schema"
+import { COMMANDS } from "./commands"
 import { KEYMAP, keyStringOf } from "./keymap"
 
 // Text entry owns its keys — an inline rename needs its own arrows and its

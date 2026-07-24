@@ -69,18 +69,43 @@ time. This changes how you should write React here:
   localStorage persister. Children render only after persisted data loads.
   The Today list row is a structural invariant, restored on load if missing.
 - All mutations live in `src/store/operations/` (`lists.ts`, `todos.ts`,
-  `ui-state.ts`); components never write cells directly. `moveTodo(db,
-todoId, listId, index?)` is the single mutation for drops; its `index` is
-  relative to the target list **without** the dragged todo. Ordering uses
-  fractional positions (midpoint inserts, no renumbering).
+  `ui-state.ts`, `selection.ts`, `undo.ts`); components never write cells
+  directly. `moveTodo(db, todoId, listId, index?)` is the single mutation for
+  drops; its `index` is relative to the target list **without** the dragged
+  todo. Ordering uses fractional positions (midpoint inserts, no
+  renumbering).
+- The layer holds rules, not just writes. `selection.ts` owns what the
+  selection values _mean_ — `selectedTodo(db)` resolves them (a selection
+  naming a deleted row is no selection), and moving it by row, by pane, or
+  off a row being deleted lives there too, so a menu and the keyboard get
+  the same answer. `src/keyboard/commands.ts` is left as a registry of ids,
+  titles and glue.
 - Hooks come from `src/store/hooks.ts` (the single schema-typed cast of
-  `tinybase/ui-react/with-schemas`); `useDb()` bundles store + indexes for
-  the operations layer. TinyBase's row/cell writing hooks are deliberately
-  not re-exported there, so a component has nothing to reach for but the
-  operations.
-- Checkpoints are the undo mechanism. A drag is one undo step:
-  `addCheckpoint()` at drag start, `goTo(preDragId)` on cancel,
-  `addCheckpoint("Move task")` on drop.
+  `tinybase/ui-react/with-schemas`); `useDb()` bundles store + indexes +
+  checkpoints for the operations layer. TinyBase's row/cell writing hooks are
+  deliberately not re-exported there, so a component has nothing to reach for
+  but the operations.
+- Checkpoints are the undo mechanism, and `operations/undo.ts` is the only
+  module that touches them (`store-provider.tsx` aside, which creates them):
+  a step is defined by when the app seals one, so a stray `addCheckpoint`
+  elsewhere is a redefinition of what one undo step means. Every user action
+  seals exactly one step via `asUndoStep(db, label, fn)`; the building blocks
+  a drag calls dozens of times (`addTodo`, `moveTodo`, `reorderProjects`)
+  leave sealing to the gesture, which uses `currentCheckpoint` at drag start,
+  `revertTo` on cancel and `sealUndoStep` on drop. Two invariants hold it
+  together:
+  - **Undo moves tables, never values.** Checkpoints cover values too, so a
+    bare `goBackward` would rewind the selection, the pane widths, and put a
+    row you just finished renaming back into edit mode. `undo`/`redo`/
+    `revertTo` snapshot the values and put them back around the move.
+  - **Nothing seals before changing data.** Sealing on the way _into_ an
+    action would bank the preceding selection move as a step of its own,
+    and since undo restores values that step reverts nothing — a keypress
+    that visibly does nothing. Seal only after a real data change.
+
+  `store-provider.tsx` calls `checkpoints.clear()` after the initial load so
+  loading the document is not itself undoable.
+
 - Verify TinyBase APIs against `node_modules/tinybase/agents.md` and
   `node_modules/tinybase/@types/` — do not trust training data.
 - UI state that only one component needs (in-flight pane widths during a

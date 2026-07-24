@@ -17,6 +17,14 @@ export type ListId = string
 // shows — two panes may show the same list someday.
 export type PaneId = string
 
+// A task pane on screen. Callers pass them in left-to-right order, which is
+// the only thing that makes "the pane to the right" mean anything. It is the
+// one part of the layout the store cannot answer for itself.
+export interface Pane {
+  listId: ListId
+  paneId: PaneId
+}
+
 // Two tables, SQL-style. A todo *shows* in exactly one list (`listId`,
 // ordered by fractional `position` within it) but *belongs* to a project
 // (`projectId`), which scheduling onto Today never touches.
