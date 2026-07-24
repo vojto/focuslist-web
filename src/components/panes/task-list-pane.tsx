@@ -1,19 +1,17 @@
 import { useState } from "react"
 import { useCell, useDb } from "../../store/hooks"
 import { addTodo } from "../../store/operations/todos"
-import type { ListId, TodoId } from "../../store/schema"
+import type { ListId, PaneId } from "../../store/schema"
 import ToolbarButton from "../../ui/toolbar-button"
 import TaskList from "../task-list/task-list"
 import NewTaskDialog from "./new-task-dialog"
 
 export default function TaskListPane({
   listId,
-  onSelectTodo,
-  selectedTodoId,
+  paneId,
 }: {
   listId: ListId
-  onSelectTodo: (todoId: TodoId) => void
-  selectedTodoId: TodoId | null
+  paneId: PaneId
 }) {
   const db = useDb()
   const kind = useCell("lists", listId, "kind")
@@ -38,8 +36,7 @@ export default function TaskListPane({
           </header>
         }
         listId={listId}
-        onSelectTodo={onSelectTodo}
-        selectedTodoId={selectedTodoId}
+        paneId={paneId}
         showProject={isToday}
       />
 

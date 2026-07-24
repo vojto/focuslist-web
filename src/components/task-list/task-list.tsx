@@ -1,8 +1,9 @@
 import { CollisionPriority } from "@dnd-kit/abstract"
 import { useDroppable } from "@dnd-kit/react"
 import type { ReactNode } from "react"
+import { useSelectTodo } from "../../hooks/use-todo-selection"
 import { useCell, useSliceRowIds } from "../../store/hooks"
-import type { ListId, TodoId } from "../../store/schema"
+import type { ListId, PaneId } from "../../store/schema"
 import TaskRow from "./task-row"
 
 // The scrollable task area of a pane. The whole area is a drop target so
@@ -11,18 +12,17 @@ import TaskRow from "./task-row"
 export default function TaskList({
   header,
   listId,
-  onSelectTodo,
-  selectedTodoId,
+  paneId,
   showProject = false,
 }: {
   header?: ReactNode
   listId: ListId
-  onSelectTodo: (todoId: TodoId) => void
-  selectedTodoId: TodoId | null
+  paneId: PaneId
   showProject?: boolean
 }) {
   const name = useCell("lists", listId, "name")
   const todoIds = useSliceRowIds("todosByList", listId)
+  const selectTodo = useSelectTodo(paneId)
   const { ref } = useDroppable({
     id: listId,
     accept: "item",
@@ -30,17 +30,26 @@ export default function TaskList({
   })
 
   return (
-    <div className="flex-1 overflow-y-auto p-8" ref={ref}>
+    <div
+      className="flex-1 overflow-y-auto p-8"
+      ref={ref}
+      // Deselect on presses that land outside any row; row presses bubble
+      // up here but have already selected via the row's own handler.
+      onPointerDown={(event) => {
+        if (!(event.target as Element).closest('[role="option"]')) {
+          selectTodo(null)
+        }
+      }}
+    >
       <div className="mx-auto max-w-2xl">
         {header}
         <ul aria-label={name} role="listbox">
           {todoIds.map((todoId, index) => (
             <TaskRow
               index={index}
-              isSelected={todoId === selectedTodoId}
               key={todoId}
               listId={listId}
-              onSelect={onSelectTodo}
+              paneId={paneId}
               showProject={showProject}
               todoId={todoId}
             />

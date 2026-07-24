@@ -3,14 +3,9 @@ import type { PointerEvent as ReactPointerEvent } from "react"
 interface PaneSeparatorProps {
   label: string
   onResize: (pointerX: number) => void
-  onResizeEnd: (pointerX: number) => void
 }
 
-export default function PaneSeparator({
-  label,
-  onResize,
-  onResizeEnd,
-}: PaneSeparatorProps) {
+export default function PaneSeparator({ label, onResize }: PaneSeparatorProps) {
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.button !== 0) {
       return
@@ -24,7 +19,7 @@ export default function PaneSeparator({
     }
 
     const handlePointerUp = (upEvent: PointerEvent) => {
-      onResizeEnd(upEvent.clientX)
+      onResize(upEvent.clientX)
       document.body.classList.remove("is-resizing-pane")
       window.removeEventListener("pointermove", handlePointerMove)
       window.removeEventListener("pointerup", handlePointerUp)

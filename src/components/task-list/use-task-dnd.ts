@@ -14,13 +14,40 @@ import type { ListId, TodoId } from "../../store/schema"
 // committed with moveTodo, so the row order on screen is always the real
 // order and the drop has nothing left to do but seal the checkpoint.
 
-function commitMove(db: Db, todoId: TodoId, listId: ListId, index: number) {
+// TEMPORARY flicker diagnostics — remove once the crossing-flicker cause is
+// confirmed. Every recomputation logs which engine ran, what slot it chose,
+// and whether it committed; an oscillation shows up as rapidly alternating
+// "commit" lines with flip-flopping slots.
+function logPlacement(
+  db: Db,
+  engine: "row" | "pane",
+  todoId: TodoId,
+  listId: ListId,
+  index: number,
+  committed: boolean,
+) {
+  const title = db.store.getCell("todos", todoId, "title") ?? todoId
+  console.log(
+    `[dnd] ${engine} "${title}" -> ${listId}@${String(index)} ${
+      committed ? "COMMIT" : "skip"
+    }`,
+  )
+}
+
+function commitMove(
+  db: Db,
+  todoId: TodoId,
+  listId: ListId,
+  index: number,
+  engine: "row" | "pane",
+) {
   // moveTodo's index is relative to the target list without the dragged
   // todo, which equals the todo's own index in the target order.
   const slice = db.indexes.getSliceRowIds("todosByList", listId)
   const alreadyThere =
     db.store.getCell("todos", todoId, "listId") === listId &&
     slice.indexOf(todoId) === index
+  logPlacement(db, engine, todoId, listId, index, !alreadyThere)
   if (!alreadyThere) {
     moveTodo(db, todoId, listId, index)
   }
@@ -54,7 +81,7 @@ function commitPaneHover(
       }
     }
   }
-  commitMove(db, todoId, listId, index)
+  commitMove(db, todoId, listId, index, "pane")
 }
 
 // Hovering a row delegates the slot math to `move` from @dnd-kit/helpers,
@@ -73,7 +100,7 @@ function commitRowHover(
   for (const [listId, todoIds] of Object.entries(moved)) {
     const index = todoIds.indexOf(todoId)
     if (index !== -1) {
-      commitMove(db, todoId, listId, index)
+      commitMove(db, todoId, listId, index, "row")
       return
     }
   }
@@ -98,6 +125,12 @@ export function useTaskDnd(visibleListIds: readonly ListId[]) {
       return
     }
     const targetId = String(target.id)
+    // TEMPORARY flicker diagnostics: dragover only fires on target change,
+    // so each of these lines is one hovered-target flip.
+    const targetLabel = visibleListIds.includes(targetId)
+      ? `pane:${targetId}`
+      : `row:${db.store.getCell("todos", targetId, "title") ?? targetId}`
+    console.log(`[dnd] over -> ${targetLabel}`)
     if (visibleListIds.includes(targetId)) {
       commitPaneHover(db, manager, event, targetId, todoId)
     } else {

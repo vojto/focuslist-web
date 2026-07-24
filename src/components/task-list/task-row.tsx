@@ -1,11 +1,16 @@
 import { Feedback } from "@dnd-kit/dom"
+import { SortableKeyboardPlugin } from "@dnd-kit/dom/sortable"
 import { useSortable } from "@dnd-kit/react/sortable"
+import {
+  useIsTodoSelected,
+  useSelectTodo,
+} from "../../hooks/use-todo-selection"
 import {
   useCell,
   useDelRowCallback,
   useSetCellCallback,
 } from "../../store/hooks"
-import type { ListId, TodoId } from "../../store/schema"
+import type { ListId, PaneId, TodoId } from "../../store/schema"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
 
 // The row's visual card. It reads by id, so every rendering stays in sync.
@@ -35,7 +40,7 @@ export function TaskRowCard({
     return null
   }
 
-  const cardClass = isSelected ? "bg-blue-50" : ""
+  const cardClass = isSelected ? "bg-indigo-50" : ""
 
   return (
     <div
@@ -66,19 +71,19 @@ export function TaskRowCard({
 
 export default function TaskRow({
   index,
-  isSelected = false,
   listId,
-  onSelect,
+  paneId,
   showProject = false,
   todoId,
 }: {
   index: number
-  isSelected?: boolean
   listId: ListId
-  onSelect: (todoId: TodoId) => void
+  paneId: PaneId
   showProject?: boolean
   todoId: TodoId
 }) {
+  const isSelected = useIsTodoSelected(paneId, todoId)
+  const selectTodo = useSelectTodo(paneId)
   // While dragging, the library floats the real row (data-dnd-dragging) and
   // keeps a cloned stand-in in the list flow (data-dnd-placeholder); the
   // data variants below style those two states. Every placement change
@@ -89,10 +94,17 @@ export default function TaskRow({
     group: listId,
     type: "item",
     accept: "item",
+    // TEMPORARY experiment: kill the index-change transition. NOT null —
+    // the React wrapper spreads input.transition over the defaults, so
+    // null is silently ignored; duration 0 survives the merge.
+    transition: { duration: 0 },
     // 0.5.0 has no top-level `feedback` input; it is per-entity plugin
-    // config (the SortableInput docs show exactly this pattern).
-    plugins: (defaults) => [
-      ...defaults,
+    // config (the SortableInput docs show exactly this pattern). The
+    // OptimisticSortingPlugin default is deliberately left out: we commit
+    // the real order on every hover, so its speculative reorder would
+    // fight the React re-render (double movement = crossing flicker).
+    plugins: [
+      SortableKeyboardPlugin,
       Feedback.configure({ feedback: "clone" }),
     ],
   })
@@ -112,10 +124,10 @@ export default function TaskRow({
           // Selection happens on pointer down (not click) so a task is
           // already selected when a drag starts, and stays highlighted
           // while dragged.
-          onPointerDown={() => onSelect(todoId)}
+          onPointerDown={() => selectTodo(todoId)}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
-              onSelect(todoId)
+              selectTodo(todoId)
             }
           }}
         >

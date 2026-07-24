@@ -1,10 +1,9 @@
 import { DragDropProvider } from "@dnd-kit/react"
-import { useState } from "react"
 import TaskListPane from "../components/panes/task-list-pane"
 import Sidebar from "../components/sidebar/sidebar"
 import { useSelectedProjectId } from "../hooks/use-selected-project"
 import { useCell, useSetValueCallback, useValue } from "../store/hooks"
-import { TODAY_LIST_ID, type TodoId } from "../store/schema"
+import { TODAY_LIST_ID } from "../store/schema"
 import PaneSeparator from "../ui/pane-separator"
 import { useTaskDnd } from "../components/task-list/use-task-dnd"
 
@@ -36,8 +35,8 @@ function NoProjectPane() {
 }
 
 export default function FocusScreen() {
-  const storedSidebarWidth = useValue("sidebarWidth")
-  const storedProjectWidth = useValue("projectWidth")
+  const sidebarWidth = useValue("sidebarWidth")
+  const projectWidth = useValue("projectWidth")
   const storeSidebarWidth = useSetValueCallback(
     "sidebarWidth",
     (width: number) => width,
@@ -48,9 +47,6 @@ export default function FocusScreen() {
     (width: number) => width,
     [],
   )
-  const [sidebarWidth, setSidebarWidth] = useState(storedSidebarWidth)
-  const [projectWidth, setProjectWidth] = useState(storedProjectWidth)
-  const [selectedTodoId, setSelectedTodoId] = useState<TodoId | null>(null)
 
   const selectedProjectId = useSelectedProjectId()
   const selectedKind = useCell("lists", selectedProjectId ?? "", "kind")
@@ -96,36 +92,18 @@ export default function FocusScreen() {
 
         <PaneSeparator
           label="Resize sidebar"
-          onResize={(pointerX) => setSidebarWidth(sidebarWidthAt(pointerX))}
-          onResizeEnd={(pointerX) => {
-            const width = sidebarWidthAt(pointerX)
-            setSidebarWidth(width)
-            storeSidebarWidth(width)
-          }}
+          onResize={(pointerX) => storeSidebarWidth(sidebarWidthAt(pointerX))}
         />
 
-        <TaskListPane
-          listId={TODAY_LIST_ID}
-          onSelectTodo={setSelectedTodoId}
-          selectedTodoId={selectedTodoId}
-        />
+        <TaskListPane listId={TODAY_LIST_ID} paneId="left" />
 
         <PaneSeparator
           label="Resize details pane"
-          onResize={(pointerX) => setProjectWidth(projectWidthAt(pointerX))}
-          onResizeEnd={(pointerX) => {
-            const width = projectWidthAt(pointerX)
-            setProjectWidth(width)
-            storeProjectWidth(width)
-          }}
+          onResize={(pointerX) => storeProjectWidth(projectWidthAt(pointerX))}
         />
 
         {projectListId !== undefined ? (
-          <TaskListPane
-            listId={projectListId}
-            onSelectTodo={setSelectedTodoId}
-            selectedTodoId={selectedTodoId}
-          />
+          <TaskListPane listId={projectListId} paneId="right" />
         ) : (
           <NoProjectPane />
         )}
