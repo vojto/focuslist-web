@@ -1,14 +1,15 @@
 import { useState } from "react"
-import { useProject } from "../../lib/projects"
-import { createTodo, useProjectTodos } from "../../lib/todos"
-import { useUiStore } from "../../stores/ui-store"
+import { useSelectedProjectId } from "../../hooks/use-selected-project"
+import { useList, useListTodos, useTasksStore } from "../../store/tasks/store"
+import ToolbarButton from "../../ui/toolbar-button"
 import NewTaskDialog from "./new-task-dialog"
 import TaskRow from "./task-row"
 
 export default function ProjectPane() {
-  const selectedProjectId = useUiStore((state) => state.selectedProjectId)
-  const project = useProject(selectedProjectId)
-  const todos = useProjectTodos(project?.id)
+  const selectedProjectId = useSelectedProjectId()
+  const project = useList(selectedProjectId)
+  const todos = useListTodos(project?.id)
+  const addTodo = useTasksStore((state) => state.addTodo)
   const [isCreating, setIsCreating] = useState(false)
 
   return (
@@ -27,12 +28,6 @@ export default function ProjectPane() {
                 <TaskRow key={todo.id} todo={todo} />
               ))}
             </ul>
-
-            {todos?.length === 0 && (
-              <p className="rounded-lg border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-400">
-                No tasks in this project yet.
-              </p>
-            )}
           </div>
         </div>
       ) : (
@@ -50,21 +45,17 @@ export default function ProjectPane() {
 
       <footer className="h-12 shrink-0 border-t border-neutral-200 bg-neutral-50 p-2">
         {project && (
-          <button
-            className="flex items-center gap-2 rounded-md px-2 py-1.5 font-medium text-neutral-500 outline-none transition active:bg-neutral-100"
-            onClick={() => setIsCreating(true)}
-            type="button"
-          >
+          <ToolbarButton onClick={() => setIsCreating(true)}>
             <span aria-hidden="true">＋</span>
             New task
-          </button>
+          </ToolbarButton>
         )}
       </footer>
 
       {isCreating && project && (
         <NewTaskDialog
           onClose={() => setIsCreating(false)}
-          onCreate={(title) => createTodo(title, { projectId: project.id })}
+          onCreate={(title) => addTodo(project.id, title)}
         />
       )}
     </section>

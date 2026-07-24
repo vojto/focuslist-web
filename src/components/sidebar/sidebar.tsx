@@ -1,11 +1,13 @@
 import { useState } from "react"
-import { createProject } from "../../lib/projects"
-import { useUiStore } from "../../stores/ui-store"
+import { useSelectProject } from "../../hooks/use-selected-project"
+import { useTasksStore } from "../../store/tasks/store"
+import ToolbarButton from "../../ui/toolbar-button"
 import NewProjectDialog from "./new-project-dialog"
 import ProjectList from "./project-list"
 
 export default function Sidebar() {
-  const setSelectedProjectId = useUiStore((state) => state.setSelectedProjectId)
+  const selectProject = useSelectProject()
+  const addProject = useTasksStore((state) => state.addProject)
   const [isCreating, setIsCreating] = useState(false)
 
   return (
@@ -27,21 +29,17 @@ export default function Sidebar() {
       </div>
 
       <footer className="h-12 shrink-0 border-t border-neutral-200 bg-neutral-100 p-2">
-        <button
-          className="flex items-center gap-2 rounded-md px-2 py-1.5 font-medium text-neutral-500 outline-none transition active:bg-neutral-200"
-          onClick={() => setIsCreating(true)}
-          type="button"
-        >
+        <ToolbarButton onClick={() => setIsCreating(true)}>
           <span aria-hidden="true">＋</span>
           New project
-        </button>
+        </ToolbarButton>
       </footer>
 
       {isCreating && (
         <NewProjectDialog
           onClose={() => setIsCreating(false)}
-          onCreate={async (name) => {
-            setSelectedProjectId(await createProject(name))
+          onCreate={(name) => {
+            selectProject(addProject(name))
           }}
         />
       )}
