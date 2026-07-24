@@ -1,6 +1,6 @@
-import { useEditTodo, useIsPaneEditing } from "../../hooks/use-todo-editing"
+import { useIsPaneEditing } from "../../hooks/use-todo-editing"
 import { useCell, useDb } from "../../store/hooks"
-import { addTodo } from "../../store/operations/todos"
+import { createTodoInPane } from "../../store/operations/todos"
 import type { ListId, PaneId } from "../../store/schema"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
 import { displayName, PROJECT_PLACEHOLDER_NAME } from "../../ui/display-name"
@@ -18,7 +18,6 @@ export default function TaskListPane({
   const kind = useCell("lists", listId, "kind")
   const name = useCell("lists", listId, "name")
   const isEditing = useIsPaneEditing(paneId, listId)
-  const editTodo = useEditTodo(paneId)
   const isToday = kind === "today"
   // An unnamed project shows the placeholder title in gray, matching its
   // sidebar row. Today always has its name.
@@ -27,11 +26,8 @@ export default function TaskListPane({
     PROJECT_PLACEHOLDER_NAME,
   )
 
-  // One transaction, so the new row's first render is already in edit mode.
   const handleNewTask = () => {
-    db.store.transaction(() => {
-      editTodo(addTodo(db, listId))
-    })
+    createTodoInPane(db, listId, paneId)
   }
 
   return (

@@ -21,14 +21,21 @@ export default function ProjectList() {
 
   const handleDragStart = () => {
     preDragOrderRef.current = [...projectIds]
+    // Seals anything pending, so the reorder below becomes an undo step of
+    // its own rather than being bundled with what came before it.
+    db.checkpoints.addCheckpoint()
   }
   const handleDragOver = (event: DragOverEvent) => {
     reorderProjects(db, move([...projectIds], event))
   }
   const handleDragEnd = (event: DragEndEvent) => {
     if (event.canceled && preDragOrderRef.current !== null) {
+      // Restoring the exact pre-drag positions leaves no net change, so the
+      // checkpoint below sees nothing to seal.
       reorderProjects(db, preDragOrderRef.current)
     }
+    // Seals the whole drag as one undo step (no-op when nothing changed).
+    db.checkpoints.addCheckpoint("Reorder projects")
     preDragOrderRef.current = null
   }
 

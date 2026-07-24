@@ -1,5 +1,11 @@
 import type { Db } from "../store/hooks"
-import { selectTodo } from "../store/operations/ui-state"
+import { createTodoInPane, deleteTodo } from "../store/operations/todos"
+import {
+  clearTodoSelection,
+  editTodo,
+  selectTodo,
+} from "../store/operations/ui-state"
+import { redo, undo } from "../store/operations/undo"
 import type { ListId, PaneId, TodoId } from "../store/schema"
 
 // A task pane on screen. Commands take them in left-to-right order, which is
@@ -92,7 +98,79 @@ function movePane(context: CommandContext, offset: number) {
   }
 }
 
+// Where the selection should land once a todo is gone: the row that slides
+// up into its place, or the one above it when it was last. Without this the
+// selection would name a deleted row and every key after it would do nothing.
+function successorOf(db: Db, todoId: TodoId): TodoId | undefined {
+  const location = locate(db, todoId)
+  if (location === undefined) {
+    return undefined
+  }
+  return (
+    location.todoIds[location.index + 1] ?? location.todoIds[location.index - 1]
+  )
+}
+
+// The pane a task command acts on: the one holding the selection, or the
+// leftmost pane when nothing is selected — or when the selection sits in a
+// pane that is no longer on screen.
+function activePane({ db, panes }: CommandContext): Pane | undefined {
+  const paneId = db.store.getValue("selectedTodoPaneId")
+  return panes.find((pane) => pane.paneId === paneId) ?? panes[0]
+}
+
 export const COMMANDS = {
+  "task.create": {
+    title: "New task",
+    run: (context) => {
+      const pane = activePane(context)
+      if (pane !== undefined) {
+        createTodoInPane(context.db, pane.listId, pane.paneId)
+      }
+    },
+  },
+  "task.edit": {
+    title: "Edit task",
+    run: ({ db }) => {
+      const todoId = db.store.getValue("selectedTodoId")
+      const paneId = db.store.getValue("selectedTodoPaneId")
+      if (todoId !== undefined && paneId !== undefined) {
+        editTodo(db, todoId, paneId)
+      }
+    },
+  },
+  "task.delete": {
+    title: "Delete task",
+    run: ({ db }) => {
+      const todoId = db.store.getValue("selectedTodoId")
+      const paneId = db.store.getValue("selectedTodoPaneId")
+      if (todoId === undefined || paneId === undefined) {
+        return
+      }
+      const successorId = successorOf(db, todoId)
+      deleteTodo(db, todoId)
+      // Moving the selection on is deliberately left outside the delete's
+      // undo step: undoing restores the row *and* the selection that pointed
+      // at it, and this pending change is discarded on the way back.
+      if (successorId === undefined) {
+        clearTodoSelection(db)
+      } else {
+        selectTodo(db, successorId, paneId)
+      }
+    },
+  },
+  "edit.undo": {
+    title: "Undo",
+    run: ({ db }) => {
+      undo(db)
+    },
+  },
+  "edit.redo": {
+    title: "Redo",
+    run: ({ db }) => {
+      redo(db)
+    },
+  },
   "selection.next": {
     title: "Next task",
     run: (context) => {

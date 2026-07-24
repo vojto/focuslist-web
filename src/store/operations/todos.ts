@@ -1,5 +1,11 @@
 import type { Db } from "../hooks"
-import type { ListId, TodoId } from "../schema"
+import type { ListId, PaneId, TodoId } from "../schema"
+import { editTodo } from "./ui-state"
+import { asUndoStep } from "./undo"
+
+// addTodo and moveTodo are building blocks: a drag calls moveTodo on every
+// pointer move and seals the whole gesture as one step, so they must not seal
+// one each. Everything else here is a whole user action and does. See ./undo.
 
 function todoIdsIn(db: Db, listId: ListId): readonly string[] {
   return db.indexes.getSliceRowIds("todosByList", listId)
@@ -50,21 +56,37 @@ export function addTodo(db: Db, listId: ListId): TodoId {
   return id
 }
 
+// Creating a task is always "creating and naming it": one step, so the new
+// row's first render is already in edit mode and no untitled row flashes
+// past. Every entry point — the toolbar, the pane menu, the keyboard — goes
+// through here, which is what keeps them from drifting apart.
+export function createTodoInPane(db: Db, listId: ListId, paneId: PaneId) {
+  asUndoStep(db, "New task", () => {
+    editTodo(db, addTodo(db, listId), paneId)
+  })
+}
+
 export function renameTodo(db: Db, todoId: TodoId, title: string) {
-  db.store.setCell("todos", todoId, "title", title)
+  asUndoStep(db, "Rename task", () => {
+    db.store.setCell("todos", todoId, "title", title)
+  })
 }
 
 export function toggleTodoCompletion(db: Db, todoId: TodoId) {
-  db.store.setCell(
-    "todos",
-    todoId,
-    "isCompleted",
-    (wasCompleted) => wasCompleted !== true,
-  )
+  asUndoStep(db, "Complete task", () => {
+    db.store.setCell(
+      "todos",
+      todoId,
+      "isCompleted",
+      (wasCompleted) => wasCompleted !== true,
+    )
+  })
 }
 
 export function deleteTodo(db: Db, todoId: TodoId) {
-  db.store.delRow("todos", todoId)
+  asUndoStep(db, "Delete task", () => {
+    db.store.delRow("todos", todoId)
+  })
 }
 
 // Moves a todo into a list at the given position (append when omitted).
@@ -93,6 +115,8 @@ export function moveTodo(
 export function unscheduleTodo(db: Db, todoId: TodoId) {
   const projectId = db.store.getCell("todos", todoId, "projectId")
   if (projectId !== undefined) {
-    moveTodo(db, todoId, projectId)
+    asUndoStep(db, "Unschedule task", () => {
+      moveTodo(db, todoId, projectId)
+    })
   }
 }

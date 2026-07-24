@@ -1,22 +1,13 @@
-import { useEditProject } from "../../hooks/use-project-editing"
-import { useSelectProject } from "../../hooks/use-selected-project"
 import { useDb } from "../../store/hooks"
-import { addProject } from "../../store/operations/lists"
+import { createProject } from "../../store/operations/lists"
 import ToolbarButton from "../../ui/toolbar-button"
 import ProjectList from "./project-list"
 
 export default function Sidebar() {
   const db = useDb()
-  const selectProject = useSelectProject()
-  const editProject = useEditProject()
 
-  // One transaction, so the new row's first render is already in edit mode.
   const handleNewProject = () => {
-    db.store.transaction(() => {
-      const projectId = addProject(db)
-      selectProject(projectId)
-      editProject(projectId)
-    })
+    createProject(db)
   }
 
   return (

@@ -1,4 +1,5 @@
 import * as UiReactModule from "tinybase/ui-react/with-schemas"
+import type { Checkpoints } from "tinybase/checkpoints/with-schemas"
 import type { Indexes } from "tinybase/indexes/with-schemas"
 import type { Store } from "tinybase/with-schemas"
 import type { Schemas } from "./schema"
@@ -25,18 +26,26 @@ export const {
   useValue,
 } = UiReact
 
-// The store and its indexes, bundled like a database connection for the
-// operations in ./operations.ts.
+// The store, its indexes and its checkpoints, bundled like a database
+// connection for the operations in ./operations. Checkpoints belong here
+// because undo is part of writing: an operation that changes data is also
+// the thing that decides what one undo step contains (see ./operations/undo).
 export interface Db {
   store: Store<Schemas>
   indexes: Indexes<Schemas>
+  checkpoints: Checkpoints<Schemas>
 }
 
 export function useDb(): Db {
   const store = useStore()
   const indexes = useIndexes()
-  if (store === undefined || indexes === undefined) {
+  const checkpoints = useCheckpoints()
+  if (
+    store === undefined ||
+    indexes === undefined ||
+    checkpoints === undefined
+  ) {
     throw new Error("useDb must be used inside StoreProvider")
   }
-  return { store, indexes }
+  return { store, indexes, checkpoints }
 }

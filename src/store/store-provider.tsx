@@ -48,9 +48,15 @@ export default function StoreProvider({ children }: { children: ReactNode }) {
       for (const valueId of SESSION_VALUE_IDS) {
         persister.getStore().delValue(valueId)
       }
+      // The checkpoints object was created against an empty store, so loading
+      // the document reads as a change one could undo — undo far enough and
+      // the app would empty itself. Clearing makes the loaded document the
+      // baseline, which is what "nothing to undo yet" means on a fresh start.
+      checkpoints?.clear()
       await persister.startAutoSave()
       setIsReady(true)
     },
+    [checkpoints],
   )
 
   return (

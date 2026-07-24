@@ -6,7 +6,7 @@ import type {
   DragStartEvent,
 } from "@dnd-kit/react"
 import { useRef } from "react"
-import { useCheckpoints, useDb, type Db } from "../../store/hooks"
+import { useDb, type Db } from "../../store/hooks"
 import { moveTodo } from "../../store/operations/todos"
 import type { ListId, TodoId } from "../../store/schema"
 
@@ -136,12 +136,11 @@ function commitPlacement(
 
 export function useTaskDnd(visibleListIds: readonly ListId[]) {
   const db = useDb()
-  const checkpoints = useCheckpoints()
   const preDragCheckpointRef = useRef<string | null>(null)
   const sourceListIdRef = useRef<ListId | null>(null)
 
   const handleDragStart = (event: DragStartEvent) => {
-    preDragCheckpointRef.current = checkpoints?.addCheckpoint() ?? null
+    preDragCheckpointRef.current = db.checkpoints.addCheckpoint()
     const source = event.operation.source
     sourceListIdRef.current =
       source === null
@@ -176,13 +175,13 @@ export function useTaskDnd(visibleListIds: readonly ListId[]) {
       if (preDragCheckpointRef.current !== null) {
         // goTo seals the aborted mid-drag changes into a forward (redo)
         // checkpoint; clear it so redo can't re-apply the canceled drag.
-        checkpoints?.goTo(preDragCheckpointRef.current)
-        checkpoints?.clearForward()
+        db.checkpoints.goTo(preDragCheckpointRef.current)
+        db.checkpoints.clearForward()
       }
       return
     }
     // Seals the whole drag as one undo step (no-op when nothing changed).
-    checkpoints?.addCheckpoint("Move task")
+    db.checkpoints.addCheckpoint("Move task")
   }
 
   return { handleDrag, handleDragEnd, handleDragStart }
