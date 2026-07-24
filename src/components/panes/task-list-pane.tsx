@@ -1,5 +1,6 @@
 import { useDroppable } from "@dnd-kit/core"
-import { useState } from "react"
+import { useRef, useState } from "react"
+import { useFlipList } from "../../hooks/use-flip-list"
 import { useCell, useDb, useSliceRowIds } from "../../store/hooks"
 import { addTodo } from "../../store/operations"
 import type { ListId } from "../../store/schema"
@@ -16,6 +17,8 @@ export default function TaskListPane({ listId }: { listId: ListId }) {
   // The whole task area is a drop target so drags land on empty lists and
   // below the last row.
   const { setNodeRef } = useDroppable({ id: listId })
+  const listRef = useRef<HTMLUListElement>(null)
+  useFlipList(listRef)
   const isToday = kind === "today"
   const backgroundClass = isToday ? "bg-white" : "bg-neutral-50"
 
@@ -34,7 +37,7 @@ export default function TaskListPane({ listId }: { listId: ListId }) {
             <h1 className="text-2xl font-semibold tracking-tight">{name}</h1>
           </header>
 
-          <ul className="space-y-2">
+          <ul className="space-y-2" ref={listRef}>
             {todoIds.map((todoId) => (
               <TaskRow key={todoId} showProject={isToday} todoId={todoId} />
             ))}

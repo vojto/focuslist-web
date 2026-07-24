@@ -101,6 +101,7 @@ export default function TaskRow({
             setDroppableRef(node)
           }}
           className="touch-none"
+          data-flip-id={todoId}
           {...attributes}
           {...listeners}
         >
