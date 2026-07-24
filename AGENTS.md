@@ -57,25 +57,26 @@ time. This changes how you should write React here:
 - A function that calls no hooks is not a hook: don't give it a `use`
   prefix; lint flags unnecessary `use` prefixes.
 
-## Data layer (TinyBase)
+## Data layer (TinyBase for the document, Zustand for the UI)
 
 - Schema in `src/store/schema.ts`: tables `lists {kind, name, position}` and
-  `todos {title, isCompleted, listId, position, projectId}`, plus UI values
-  (`sidebarWidth`, `projectWidth`). A todo _shows_ in exactly one list
-  (`listId` + fractional `position`) and _belongs_ to a project
-  (`projectId`) — scheduling onto Today never touches `projectId`.
+  `todos {title, isCompleted, listId, position, projectId}`, and an
+  **empty values schema** — the document is tables and nothing else. A todo
+  _shows_ in exactly one list (`listId` + fractional `position`) and
+  _belongs_ to a project (`projectId`) — scheduling onto Today never touches
+  `projectId`.
 - `src/store/store-provider.tsx` creates the store, indexes (`todosByList`,
   `listsByKind` — ordered views come from their slices), checkpoints, and a
   localStorage persister. Children render only after persisted data loads.
   The Today list row is a structural invariant, restored on load if missing.
 - All mutations live in `src/store/operations/` (`lists.ts`, `todos.ts`,
-  `ui-state.ts`, `selection.ts`, `undo.ts`); components never write cells
+  `selection.ts`, `undo.ts`); components never write cells
   directly. `moveTodo(db, todoId, listId, index?)` is the single mutation for
   drops; its `index` is relative to the target list **without** the dragged
   todo. Ordering uses fractional positions (midpoint inserts, no
   renumbering).
 - The layer holds rules, not just writes. `selection.ts` owns what the
-  selection values _mean_ — `selectedTodo(db)` resolves them (a selection
+  selection state _means_ — `selectedTodo(db)` resolves it (a selection
   naming a deleted row is no selection), and moving it by row, by pane, or
   off a row being deleted lives there too, so a menu and the keyboard get
   the same answer. `src/keyboard/commands.ts` is left as a registry of ids,
@@ -92,37 +93,34 @@ time. This changes how you should write React here:
   seals exactly one step via `asUndoStep(db, label, fn)`; the building blocks
   a drag calls dozens of times (`addTodo`, `moveTodo`, `reorderProjects`)
   leave sealing to the gesture, which uses `currentCheckpoint` at drag start,
-  `revertTo` on cancel and `sealUndoStep` on drop. Two invariants hold it
-  together:
-  - **Undo moves tables, never values.** Checkpoints cover values too, so a
-    bare `goBackward` would rewind the selection, the pane widths, and put a
-    row you just finished renaming back into edit mode. `undo`/`redo`/
-    `revertTo` snapshot the values and put them back around the move.
-  - **Nothing seals before changing data.** Sealing on the way _into_ an
-    action would bank the preceding selection move as a step of its own,
-    and since undo restores values that step reverts nothing — a keypress
-    that visibly does nothing. Seal only after a real data change.
-
+  `revertTo` on cancel and `sealUndoStep` on drop. Nothing seals on the way
+  _into_ an action — a checkpoint taken before changing anything is a step
+  that undoes nothing, which reads to the user as a dead keypress. Undo is
+  short because the store holds only the document: there is no selection or
+  column width in a checkpoint to travel back to.
   `store-provider.tsx` calls `checkpoints.clear()` after the initial load so
   loading the document is not itself undoable.
-
 - Verify TinyBase APIs against `node_modules/tinybase/agents.md` and
   `node_modules/tinybase/@types/` — do not trust training data.
 - UI state that only one component needs (in-flight pane widths during a
-  drag, an edit draft) is plain React state. UI state a second component
-  reads goes in TinyBase values, written through
-  `operations/ui-state.ts` and read through the matching hooks
-  (`use-todo-selection.ts`, `use-todo-editing.ts`, `use-project-editing.ts`,
-  `use-selected-project.ts`) — keyboard commands and components then move
-  the selection the same way. A todo's selection and edit mode are each an
-  id/pane pair (`selectedTodoId` + `selectedTodoPaneId`, `editingTodoId` +
-  `editingTodoPaneId`), so two panes can never both claim one; projects need
-  no pane, there being one project list. Every pair resolves through the
-  store, so a stale one — the row was deleted, the pane now shows another
-  list — is inert and needs no cleanup. All of them are listed in
-  `SESSION_VALUE_IDS` and cleared on load in `store-provider.tsx`: they are
-  values so several components can read them, not so they survive a reload.
-  Layout and `selectedProjectId` are the document's and do persist.
+  drag, an edit draft) is plain React state. Everything else about how the
+  app looks lives in the Zustand store in `src/store/ui-store.ts`, **not** in
+  TinyBase — that separation is what keeps undo from rewinding the selection
+  or a pane width. Components read it with `useUiStore(selector)` (or the
+  named readers in `src/hooks/`, e.g. `use-todo-selection.ts`) and write it
+  with the plain functions the store exports (`selectTodo`, `editTodo`, …);
+  the operations layer reads it outside React through `uiState()`. Selectors
+  must return primitives, never fresh objects.
+- Two lifetimes live in that store. Layout and `selectedProjectId` are the
+  app's chrome and persist under their own key (`focuslist-ui`), via the
+  `partialize` list; the selection and edit pairs are session state and are
+  simply not persisted — no clearing on load needed. A todo's selection and
+  edit mode are each an id/pane pair (`selectedTodoId` +
+  `selectedTodoPaneId`, `editingTodoId` + `editingTodoPaneId`), so two panes
+  can never both claim one; projects need no pane, there being one project
+  list. Every pair resolves against the document, so a stale one — the row
+  was deleted, the pane now shows another list — is inert and needs no
+  cleanup.
 
 ## Drag and drop (@dnd-kit/react)
 

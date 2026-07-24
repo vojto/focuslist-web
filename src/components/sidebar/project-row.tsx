@@ -1,13 +1,10 @@
 import { Feedback } from "@dnd-kit/dom"
 import { useSortable } from "@dnd-kit/react/sortable"
-import {
-  useEditProject,
-  useIsProjectEditing,
-} from "../../hooks/use-project-editing"
-import { useSelectProject } from "../../hooks/use-selected-project"
+import { useIsProjectEditing } from "../../hooks/use-project-editing"
 import { useCell, useDb } from "../../store/hooks"
 import { deleteProject, renameProject } from "../../store/operations/lists"
 import type { ListId } from "../../store/schema"
+import { editProject, selectProject } from "../../store/ui-store"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
 import { displayName, PROJECT_PLACEHOLDER_NAME } from "../../ui/display-name"
 import InlineEditInput from "../../ui/inline-edit-input"
@@ -25,11 +22,9 @@ export default function ProjectRow({
   projectId: ListId
 }) {
   const db = useDb()
-  const selectProject = useSelectProject()
   const name = useCell("lists", projectId, "name")
   const { isPlaceholder, text } = displayName(name, PROJECT_PLACEHOLDER_NAME)
   const isEditing = useIsProjectEditing(projectId)
-  const editProject = useEditProject()
 
   const { ref } = useSortable({
     id: projectId,

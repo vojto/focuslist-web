@@ -1,7 +1,7 @@
 import type { Db } from "../hooks"
 import type { ListId, PaneId, TodoId } from "../schema"
 import { moveSelectionOff } from "./selection"
-import { editTodo } from "./ui-state"
+import { editTodo } from "../ui-store"
 import { asUndoStep } from "./undo"
 
 // addTodo and moveTodo are building blocks: a drag calls moveTodo on every
@@ -63,7 +63,7 @@ export function addTodo(db: Db, listId: ListId): TodoId {
 // through here, which is what keeps them from drifting apart.
 export function createTodoInPane(db: Db, listId: ListId, paneId: PaneId) {
   asUndoStep(db, "New task", () => {
-    editTodo(db, addTodo(db, listId), paneId)
+    editTodo(addTodo(db, listId), paneId)
   })
 }
 

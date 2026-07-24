@@ -1,11 +1,9 @@
-import { useEditTodo, useIsTodoEditing } from "../../hooks/use-todo-editing"
-import {
-  useIsTodoSelected,
-  useSelectTodo,
-} from "../../hooks/use-todo-selection"
+import { useIsTodoEditing } from "../../hooks/use-todo-editing"
+import { useIsTodoSelected } from "../../hooks/use-todo-selection"
 import { useCell, useDb } from "../../store/hooks"
 import { deleteTodo, renameTodo } from "../../store/operations/todos"
 import type { ListId, PaneId, TodoId } from "../../store/schema"
+import { editTodo, selectTodo, stopEditingTodo } from "../../store/ui-store"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
 import InlineEditInput from "../../ui/inline-edit-input"
 import TaskRowCard from "./task-row-card"
@@ -27,10 +25,8 @@ export default function TaskRow({
 }) {
   const db = useDb()
   const isSelected = useIsTodoSelected(paneId, todoId)
-  const selectTodo = useSelectTodo(paneId)
   const title = useCell("todos", todoId, "title")
   const isEditing = useIsTodoEditing(paneId, todoId)
-  const editTodo = useEditTodo(paneId)
   const { isCompleted, toggleTodo } = useTodoCompletion(todoId)
   // While dragging, the library floats the real row (data-dnd-dragging) and
   // keeps a cloned stand-in in the list flow (data-dnd-placeholder); the
@@ -54,13 +50,13 @@ export default function TaskRow({
           // already selected when a drag starts, and stays highlighted
           // while dragged.
           onPointerDown={() => {
-            selectTodo(todoId)
+            selectTodo(todoId, paneId)
           }}
           // The guard keeps a fast double-toggle of the checkbox from
           // dropping the row into edit mode.
           onDoubleClick={(event) => {
             if (!(event.target instanceof HTMLInputElement)) {
-              editTodo(todoId)
+              editTodo(todoId, paneId)
             }
           }}
           // The pane behind us opens its own menu on background right-clicks;
@@ -70,7 +66,7 @@ export default function TaskRow({
           }}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
-              selectTodo(todoId)
+              selectTodo(todoId, paneId)
             }
           }}
         >
@@ -88,13 +84,13 @@ export default function TaskRow({
                 className="min-w-0 flex-1 select-text bg-transparent p-0 text-neutral-800 outline-none"
                 initialValue={title ?? ""}
                 onCancel={() => {
-                  editTodo(undefined)
+                  stopEditingTodo()
                 }}
                 onCommit={(nextTitle) => {
                   if (nextTitle !== undefined) {
                     renameTodo(db, todoId, nextTitle)
                   }
-                  editTodo(undefined)
+                  stopEditingTodo()
                 }}
               />
             ) : undefined}

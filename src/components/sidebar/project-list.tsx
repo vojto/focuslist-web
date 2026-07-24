@@ -3,19 +3,16 @@ import { DragDropProvider } from "@dnd-kit/react"
 import type { DragEndEvent, DragOverEvent } from "@dnd-kit/react"
 import { useRef } from "react"
 import { useDb, useSliceRowIds } from "../../store/hooks"
-import {
-  useSelectedProjectId,
-  useSelectProject,
-} from "../../hooks/use-selected-project"
+import { useSelectedProjectId } from "../../hooks/use-selected-project"
 import { reorderProjects } from "../../store/operations/lists"
 import { sealUndoStep } from "../../store/operations/undo"
+import { selectProject } from "../../store/ui-store"
 import ProjectRow from "./project-row"
 
 export default function ProjectList() {
   const db = useDb()
   const projectIds = useSliceRowIds("listsByKind", "project")
   const selectedProjectId = useSelectedProjectId()
-  const selectProject = useSelectProject()
   // The store is the source of truth during the drag too: every reorder is
   // committed as it happens, and a canceled drag restores this snapshot.
   const preDragOrderRef = useRef<readonly string[] | null>(null)

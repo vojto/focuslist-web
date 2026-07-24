@@ -6,7 +6,7 @@ import {
   selectedTodo,
 } from "../store/operations/selection"
 import { createTodoInPane, deleteTodo } from "../store/operations/todos"
-import { editTodo } from "../store/operations/ui-state"
+import { editTodo } from "../store/ui-store"
 import { redo, undo } from "../store/operations/undo"
 import type { Pane } from "../store/schema"
 
@@ -33,7 +33,7 @@ export const COMMANDS = {
   "task.create": {
     title: "New task",
     run: ({ db, panes }) => {
-      const pane = activePane(db, panes)
+      const pane = activePane(panes)
       if (pane !== undefined) {
         createTodoInPane(db, pane.listId, pane.paneId)
       }
@@ -44,7 +44,7 @@ export const COMMANDS = {
     run: ({ db }) => {
       const selected = selectedTodo(db)
       if (selected !== undefined) {
-        editTodo(db, selected.todoId, selected.paneId)
+        editTodo(selected.todoId, selected.paneId)
       }
     },
   },

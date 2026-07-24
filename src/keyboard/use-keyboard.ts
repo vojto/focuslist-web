@@ -1,5 +1,6 @@
 import { useEffect } from "react"
 import { useDb } from "../store/hooks"
+import { uiState } from "../store/ui-store"
 import type { Pane } from "../store/schema"
 import { COMMANDS } from "./commands"
 import { KEYMAP, keyStringOf } from "./keymap"
@@ -66,7 +67,7 @@ export function useKeyboard(panes: readonly Pane[]) {
       // selection they just moved.
       event.preventDefault()
       COMMANDS[commandId].run({ db, panes })
-      revealSelectedTodo(db.store.getValue("selectedTodoId"))
+      revealSelectedTodo(uiState().selectedTodoId)
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => {

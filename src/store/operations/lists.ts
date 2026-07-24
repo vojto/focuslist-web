@@ -1,6 +1,6 @@
 import type { Db } from "../hooks"
 import type { ListId } from "../schema"
-import { editProject, selectProject } from "./ui-state"
+import { editProject, selectProject } from "../ui-store"
 import { asUndoStep } from "./undo"
 
 // reorderProjects is a building block — the sidebar drag calls it on every
@@ -26,8 +26,8 @@ function addProject(db: Db): ListId {
 export function createProject(db: Db) {
   asUndoStep(db, "New project", () => {
     const projectId = addProject(db)
-    selectProject(db, projectId)
-    editProject(db, projectId)
+    selectProject(projectId)
+    editProject(projectId)
   })
 }
 

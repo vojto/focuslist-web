@@ -2,8 +2,8 @@ import { CollisionPriority } from "@dnd-kit/abstract"
 import { useDroppable } from "@dnd-kit/react"
 import { useRef, type ReactNode } from "react"
 import { useFlipList } from "../../hooks/use-flip-list"
-import { useSelectTodo } from "../../hooks/use-todo-selection"
 import { useCell, useSliceRowIds } from "../../store/hooks"
+import { clearTodoSelection } from "../../store/ui-store"
 import type { ListId, PaneId } from "../../store/schema"
 import TaskRow from "./task-row"
 
@@ -25,7 +25,6 @@ export default function TaskList({
 }) {
   const name = useCell("lists", listId, "name")
   const todoIds = useSliceRowIds("todosByList", listId)
-  const selectTodo = useSelectTodo(paneId)
   const { ref } = useDroppable({
     id: listId,
     accept: "item",
@@ -46,7 +45,7 @@ export default function TaskList({
       // up here but have already selected via the row's own handler.
       onPointerDown={(event) => {
         if (!(event.target as Element).closest('[role="option"]')) {
-          selectTodo(undefined)
+          clearTodoSelection()
         }
       }}
     >

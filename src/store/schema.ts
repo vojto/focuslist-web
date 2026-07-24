@@ -43,38 +43,13 @@ export const TABLES_SCHEMA = {
   },
 } as const
 
-export const VALUES_SCHEMA = {
-  sidebarWidth: { type: "number", default: 224 },
-  projectWidth: { type: "number" },
-  // The project shown in the left pane; absent when none is selected.
-  selectedProjectId: { type: "string" },
-  // App-wide single selection: the todo plus the pane it was selected in.
-  // One value pair means two panes can never both hold a selection.
-  selectedTodoId: { type: "string" },
-  selectedTodoPaneId: { type: "string" },
-  // The todo currently in inline edit mode, plus the pane it is edited in —
-  // the same id/pane pair as the selection, so only one row can ever be in
-  // edit mode. Owning this here (rather than as row-local state) is what
-  // lets "New task" create a row already in edit mode.
-  editingTodoId: { type: "string" },
-  editingTodoPaneId: { type: "string" },
-  // The sidebar's counterpart to editingTodoId. No pane to pair it with —
-  // there is only one project list.
-  editingProjectId: { type: "string" },
-} as const
-
-// Values that belong to the session rather than to the saved document.
-// They live in the store so more than one component can read them, but they
-// are cleared on load (see store-provider.tsx) — reopening the app should
-// not restore a highlighted row or a half-typed title. Layout and the
-// selected project are the document's, and do persist.
-export const SESSION_VALUE_IDS = [
-  "selectedTodoId",
-  "selectedTodoPaneId",
-  "editingTodoId",
-  "editingTodoPaneId",
-  "editingProjectId",
-] as const
+// The document has no values, only tables — selection, edit mode, layout and
+// the open project all live in ui-store.ts. Declaring the schema empty is
+// what enforces that: TinyBase drops values the schema does not name, so a
+// stray write cannot land here, and neither can the values older versions of
+// the app persisted. A checkpoint is therefore a document state and nothing
+// else, which is what keeps undo from rewinding the way the app looks.
+export const VALUES_SCHEMA = {} as const
 
 export type Schemas = [typeof TABLES_SCHEMA, typeof VALUES_SCHEMA]
 

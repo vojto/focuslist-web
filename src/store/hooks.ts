@@ -11,6 +11,8 @@ const UiReact = UiReactModule as unknown as UiReactModule.WithSchemas<Schemas>
 // Readers, plus the setup hooks the provider needs. TinyBase's row/cell
 // writing hooks are deliberately not re-exported: every table mutation goes
 // through src/store/operations, so components have no way to reach for one.
+// Nor are the value hooks — the document has no values (see schema.ts), and
+// what would have been read through them lives in ../store/ui-store.
 export const {
   Provider,
   useCell,
@@ -20,10 +22,8 @@ export const {
   useCreatePersister,
   useCreateStore,
   useIndexes,
-  useSetValueCallback,
   useSliceRowIds,
   useStore,
-  useValue,
 } = UiReact
 
 // The store, its indexes and its checkpoints, bundled like a database

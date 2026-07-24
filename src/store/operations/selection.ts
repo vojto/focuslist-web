@@ -1,9 +1,9 @@
 import type { Db } from "../hooks"
 import type { Pane, PaneId, TodoId } from "../schema"
-import { clearTodoSelection, selectTodo } from "./ui-state"
+import { clearTodoSelection, selectTodo, uiState } from "../ui-store"
 
 // Which todo the app is pointing at, and every rule for where that pointer
-// goes next. ui-state.ts owns the two values; this module owns what they
+// goes next. ui-store.ts owns the two values; this module owns what they
 // mean — reading them resolved (a selection naming a deleted row is no
 // selection), and moving them by row, by pane, or out of the way of a
 // deletion.
@@ -25,8 +25,7 @@ export interface SelectedTodo {
 // is what sends the next arrow key back to the top of a list instead of
 // nowhere.
 export function selectedTodo(db: Db): SelectedTodo | undefined {
-  const todoId = db.store.getValue("selectedTodoId")
-  const paneId = db.store.getValue("selectedTodoPaneId")
+  const { selectedTodoId: todoId, selectedTodoPaneId: paneId } = uiState()
   if (
     todoId === undefined ||
     paneId === undefined ||
@@ -40,9 +39,9 @@ export function selectedTodo(db: Db): SelectedTodo | undefined {
 // The pane a task action works in: the one holding the selection, or the
 // leftmost pane when nothing is selected — or when the selection sits in a
 // pane that is no longer on screen.
-export function activePane(db: Db, panes: readonly Pane[]): Pane | undefined {
-  const paneId = db.store.getValue("selectedTodoPaneId")
-  return panes.find((pane) => pane.paneId === paneId) ?? panes[0]
+export function activePane(panes: readonly Pane[]): Pane | undefined {
+  const { selectedTodoPaneId } = uiState()
+  return panes.find((pane) => pane.paneId === selectedTodoPaneId) ?? panes[0]
 }
 
 // Where a todo sits: the row order of the list holding it, and its place in
@@ -67,7 +66,7 @@ function selectEdgeTodo(db: Db, panes: readonly Pane[], offset: number) {
     const todoIds = db.indexes.getSliceRowIds("todosByList", pane.listId)
     const todoId = offset > 0 ? todoIds[0] : todoIds.at(-1)
     if (todoId !== undefined) {
-      selectTodo(db, todoId, pane.paneId)
+      selectTodo(todoId, pane.paneId)
       return
     }
   }
@@ -84,7 +83,7 @@ export function moveSelection(db: Db, panes: readonly Pane[], offset: number) {
   const location = locate(db, selected.todoId)
   const nextTodoId = location?.todoIds[location.index + offset]
   if (nextTodoId !== undefined) {
-    selectTodo(db, nextTodoId, selected.paneId)
+    selectTodo(nextTodoId, selected.paneId)
   }
 }
 
@@ -110,7 +109,7 @@ export function moveSelectionToPane(
   const rowIndex = locate(db, selected.todoId)?.index ?? 0
   const nextTodoId = todoIds[Math.min(rowIndex, todoIds.length - 1)]
   if (nextTodoId !== undefined) {
-    selectTodo(db, nextTodoId, targetPane.paneId)
+    selectTodo(nextTodoId, targetPane.paneId)
   }
 }
 
@@ -131,8 +130,8 @@ export function moveSelectionOff(db: Db, todoId: TodoId) {
       : (location.todoIds[location.index + 1] ??
         location.todoIds[location.index - 1])
   if (successorId === undefined) {
-    clearTodoSelection(db)
+    clearTodoSelection()
   } else {
-    selectTodo(db, successorId, selected.paneId)
+    selectTodo(successorId, selected.paneId)
   }
 }
