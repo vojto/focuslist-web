@@ -14,27 +14,24 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { useState } from "react"
+import { useCell, useSliceRowIds } from "../../db"
 import {
   useSelectedProjectId,
   useSelectProject,
 } from "../../hooks/use-selected-project"
-import { useProjects, useTasksStore } from "../../stores/use-tasks-store"
+import { reorderProjects } from "../../lib/task-operations"
 import ProjectRow from "./project-row"
 import ProjectRowPreview from "./project-row-preview"
 
 export default function ProjectList() {
-  const projects = useProjects()
-  const reorderProjects = useTasksStore((state) => state.reorderProjects)
+  const projectIds = useSliceRowIds("listsByKind", "project")
   const selectedProjectId = useSelectedProjectId()
   const selectProject = useSelectProject()
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
+  const activeProjectName = useCell("lists", activeProjectId ?? "", "name")
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   )
-  const activeProject =
-    activeProjectId === null
-      ? undefined
-      : projects.find((project) => project.id === activeProjectId)
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveProjectId(String(event.active.id))
@@ -44,22 +41,12 @@ export default function ProjectList() {
     if (event.over === null) {
       return
     }
-    const activeIndex = projects.findIndex(
-      (project) => project.id === String(event.active.id),
-    )
-    const overIndex = projects.findIndex(
-      (project) => project.id === String(event.over?.id),
-    )
+    const activeIndex = projectIds.indexOf(String(event.active.id))
+    const overIndex = projectIds.indexOf(String(event.over.id))
     if (activeIndex === -1 || overIndex === -1 || activeIndex === overIndex) {
       return
     }
-    reorderProjects(
-      arrayMove(
-        projects.map((project) => project.id),
-        activeIndex,
-        overIndex,
-      ),
-    )
+    reorderProjects(arrayMove([...projectIds], activeIndex, overIndex))
   }
   const handleDragCancel = () => {
     setActiveProjectId(null)
@@ -79,25 +66,25 @@ export default function ProjectList() {
         onDragCancel={handleDragCancel}
       >
         <SortableContext
-          items={projects.map((project) => project.id)}
+          items={[...projectIds]}
           strategy={verticalListSortingStrategy}
         >
           <nav aria-label="Projects" className="mt-2 space-y-0.5">
-            {projects.map((project) => (
+            {projectIds.map((projectId) => (
               <ProjectRow
-                isSelected={project.id === selectedProjectId}
-                key={project.id}
+                isSelected={projectId === selectedProjectId}
+                key={projectId}
                 onSelect={selectProject}
-                project={project}
+                projectId={projectId}
               />
             ))}
           </nav>
         </SortableContext>
         <DragOverlay>
-          {activeProject === undefined ? null : (
+          {activeProjectName === undefined ? null : (
             <ProjectRowPreview
-              isSelected={activeProject.id === selectedProjectId}
-              label={activeProject.name}
+              isSelected={activeProjectId === selectedProjectId}
+              label={activeProjectName}
               overlay
             />
           )}

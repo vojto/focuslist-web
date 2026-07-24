@@ -1,13 +1,12 @@
 import { useState } from "react"
 import { useSelectProject } from "../../hooks/use-selected-project"
-import { useTasksStore } from "../../stores/use-tasks-store"
+import { addProject } from "../../lib/task-operations"
 import ToolbarButton from "../../ui/toolbar-button"
 import NewProjectDialog from "./new-project-dialog"
 import ProjectList from "./project-list"
 
 export default function Sidebar() {
   const selectProject = useSelectProject()
-  const addProject = useTasksStore((state) => state.addProject)
   const [isCreating, setIsCreating] = useState(false)
 
   return (

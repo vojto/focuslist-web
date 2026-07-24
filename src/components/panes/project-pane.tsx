@@ -1,20 +1,20 @@
 import { useState } from "react"
+import { useCell, useSliceRowIds } from "../../db"
 import { useSelectedProjectId } from "../../hooks/use-selected-project"
-import {
-  useList,
-  useListTodos,
-  useTasksStore,
-} from "../../stores/use-tasks-store"
+import { addTodo } from "../../lib/task-operations"
 import ToolbarButton from "../../ui/toolbar-button"
 import NewTaskDialog from "./new-task-dialog"
 import TaskRow from "./task-row"
 
 export default function ProjectPane() {
   const selectedProjectId = useSelectedProjectId()
-  const project = useList(selectedProjectId)
-  const todos = useListTodos(project?.id)
-  const addTodo = useTasksStore((state) => state.addTodo)
+  const projectName = useCell("lists", selectedProjectId ?? "", "name")
+  const todoIds = useSliceRowIds("todosByList", selectedProjectId ?? "")
   const [isCreating, setIsCreating] = useState(false)
+  const project =
+    selectedProjectId !== undefined && projectName !== undefined
+      ? { id: selectedProjectId, name: projectName }
+      : undefined
 
   return (
     <section className="flex h-full min-h-0 min-w-0 flex-col bg-neutral-50">
@@ -28,8 +28,8 @@ export default function ProjectPane() {
             </header>
 
             <ul className="space-y-2">
-              {todos?.map((todo) => (
-                <TaskRow key={todo.id} todo={todo} />
+              {todoIds.map((todoId) => (
+                <TaskRow key={todoId} todoId={todoId} />
               ))}
             </ul>
           </div>

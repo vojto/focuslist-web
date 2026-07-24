@@ -1,18 +1,20 @@
 import type { CSSProperties } from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import type { ListId, TaskList } from "../../types"
+import { useCell } from "../../db"
+import type { ListId } from "../../types"
 import ProjectRowPreview from "./project-row-preview"
 
 export default function ProjectRow({
   isSelected,
   onSelect,
-  project,
+  projectId,
 }: {
   isSelected: boolean
   onSelect: (projectId: ListId) => void
-  project: TaskList
+  projectId: ListId
 }) {
+  const name = useCell("lists", projectId, "name")
   const {
     attributes,
     isDragging,
@@ -20,7 +22,7 @@ export default function ProjectRow({
     setNodeRef,
     transform,
     transition,
-  } = useSortable({ id: project.id })
+  } = useSortable({ id: projectId })
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -31,7 +33,7 @@ export default function ProjectRow({
       ref={setNodeRef}
       aria-current={isSelected ? "true" : undefined}
       className="block w-full outline-none"
-      onClick={() => onSelect(project.id)}
+      onClick={() => onSelect(projectId)}
       style={style}
       type="button"
       {...attributes}
@@ -39,7 +41,7 @@ export default function ProjectRow({
     >
       <ProjectRowPreview
         isSelected={isSelected}
-        label={project.name}
+        label={name ?? ""}
         placeholder={isDragging}
       />
     </button>

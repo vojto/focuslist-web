@@ -1,16 +1,12 @@
 import { useState } from "react"
-import {
-  TODAY_LIST_ID,
-  useListTodos,
-  useTasksStore,
-} from "../../stores/use-tasks-store"
+import { TODAY_LIST_ID, useSliceRowIds } from "../../db"
+import { addTodo } from "../../lib/task-operations"
 import ToolbarButton from "../../ui/toolbar-button"
 import NewTaskDialog from "./new-task-dialog"
 import TaskRow from "./task-row"
 
 export default function TodayPane() {
-  const todos = useListTodos(TODAY_LIST_ID)
-  const addTodo = useTasksStore((state) => state.addTodo)
+  const todoIds = useSliceRowIds("todosByList", TODAY_LIST_ID)
   const [isCreating, setIsCreating] = useState(false)
 
   return (
@@ -25,8 +21,8 @@ export default function TodayPane() {
           </header>
 
           <ul className="space-y-2">
-            {todos?.map((todo) => (
-              <TaskRow key={todo.id} showProject todo={todo} />
+            {todoIds.map((todoId) => (
+              <TaskRow key={todoId} showProject todoId={todoId} />
             ))}
           </ul>
         </div>

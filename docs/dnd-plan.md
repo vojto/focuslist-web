@@ -1,73 +1,91 @@
-# Inter-pane drag and drop — plan
+# Inter-pane drag and drop — plan (TinyBase edition)
 
-Goal: drag tasks between the Today pane and project panes (and any future pane),
-with live re-homing — while dragging, the task visibly leaves its old list and a
-gap opens at the drop position in the new one.
+Goal: drag tasks between the Today pane and project panes (and any future
+pane), with live re-homing — while dragging, the task visibly leaves its old
+list and a gap opens at the drop position in the new one.
 
-Reference implementation for most patterns: `../focustask` (board ⇄ weekly
-planner drag with the same requirements). We adapt its ideas rather than its
-code, since focuslist's model is simpler (flat lists, no board cells).
+Reference implementation for the dnd-kit patterns: `../focustask` (board ⇄
+weekly planner drag with the same requirements). We adapt its ideas rather
+than its code; its preview-layout machinery is NOT needed here (see "The
+checkpoint insight" below).
 
-## Foundation (done in the store rewrite)
+## Foundation (done in the TinyBase rewrite)
 
-The store is the single synchronous source of truth; persistence is a
-background concern (`zustand/persist`). This is what makes re-homing simple:
-rendering a hypothetical layout is just rendering different state — no async
-gap, no optimistic overlay, no catch-up reconciliation.
+The data layer is a TinyBase store (`src/db.ts`) — synchronous, reactive,
+persisted to localStorage (swap for the SQLite persister when the app moves to
+Tauri). Two tables, SQL-style:
 
-- **Lists are records**: `TaskList { id, kind: "today" | "project", name, todoIds }`.
-  Membership and order are the same fact: the `todoIds` array. A todo appears
-  in exactly one list's array at a time.
-- **Belonging is separate from placement**: `Todo.projectId` records which
-  project a task belongs to and is _never_ changed by scheduling. Dragging a
-  task to Today moves its id into Today's array but leaves `projectId` alone —
-  that's why Today rows can show a project badge and why Unschedule knows where
-  to send the task back.
-- **Pure operations** (`src/lib/task-operations.ts`): `moveTodoToList(state,
-todoId, targetListId, index)` returns the next state slices without touching
-  the store. Store actions commit them; the drag preview (below) will call the
-  same function on hypothetical state. Preview and commit cannot disagree.
+- `lists { kind: "today" | "project", name, position }` — the Today row plus
+  one row per project; `position` orders the sidebar.
+- `todos { title, isCompleted, listId, position, projectId? }` —
+  - `listId` = **placement**: which list the todo currently shows in (exactly
+    one at a time).
+  - `position` = order within that list. Fractional positioning: inserting
+    between two todos takes the midpoint, so drops never renumber neighbors.
+  - `projectId` = **belonging**: never touched by scheduling. Dragging a todo
+    onto Today changes `listId` only — that's why Today rows can show a
+    project badge and why Unschedule knows where to send the todo back.
+
+Each pane renders an index slice (`useSliceRowIds("todosByList", listId)`) —
+the ordered id array that dnd-kit's `SortableContext` wants, kept reactive by
+TinyBase. All mutations live in `src/lib/task-operations.ts`; the key one is
+`moveTodo(todoId, targetListId, index?)`, which computes the fractional
+position and updates `listId`/`position`/`projectId` in one transaction.
+
+## The checkpoint insight (what TinyBase changes)
+
+Earlier drafts of this plan needed a "preview layout" — hypothetical state
+rendered during the drag, committed on drop, discarded on cancel — because we
+didn't want to write real state mid-drag. TinyBase makes that whole layer
+unnecessary via its checkpoints module (undo/redo built in):
+
+- **Drag start** → `checkpoints.addCheckpoint()` to seal the pre-drag state,
+  remembering its id.
+- **Drag over a new spot** → just call `moveTodo` for real. Every pane
+  re-renders from truth; the card re-homes live. The preview _is_ the store.
+- **Drop** → nothing to do — the store is already correct. Add a checkpoint
+  ("move task") so the drag is one undo step.
+- **Cancel/Escape** → `checkpoints.goTo(preDragCheckpointId)` rolls everything
+  back. dnd-kit's `onDragCancel` maps to exactly this.
+
+Setup: `createCheckpoints(db)` from `tinybase/checkpoints/with-schemas`.
+Notes:
+
+- The localStorage persister auto-saves mid-drag states; harmless locally
+  (worst case a refresh mid-drag lands on the drag's latest hover position).
+- Checkpoints also give us app-wide undo/redo nearly for free later.
 
 ## Step 1 — Drag data + a single DndContext
 
 - One `DndContext` in `FocusScreen` wrapping both panes (required for
-  cross-pane drags). The sidebar's project-reorder `DndContext` stays separate.
+  cross-pane drags). The sidebar's project-reorder `DndContext` stays
+  separate.
 - A typed `DragData` union with a runtime guard (`getDragData`), following
   focustask's `src/components/drag-and-drop/card-dnd.ts`:
-  - `{ type: "todo", todoId, listId }` — on every task row (a `useSortable`).
-  - `{ type: "list", listId }` — on every pane's task area (a `useDroppable`),
+  - `{ type: "todo", todoId, listId }` — on every task row (`useSortable`).
+  - `{ type: "list", listId }` — on every pane's task area (`useDroppable`),
     so drops work on empty lists and below the last row.
-- Ids are globally unique already (`todo-…`, `project-…`, `today`), so rows use
-  their todo id directly as the sortable id. Each pane renders a
-  `SortableContext` over its list's `todoIds`.
+- Row ids (`todo-…`) are globally unique, so they serve directly as sortable
+  ids. Each pane renders a `SortableContext` over its slice's row ids.
 
-## Step 2 — Live re-homing preview
+## Step 2 — Live re-homing
 
-The whole mechanism is one piece of state in the DnD hook
-(`useTaskDnd`, colocated with `FocusScreen`):
+The DnD hook (`useTaskDnd`, colocated with `FocusScreen`) holds only:
 
-```ts
-const [previewListsById, setPreviewListsById] = useState<ListsById | null>(null)
-```
+- the active drag's `todoId` (for the `DragOverlay`), and
+- the pre-drag checkpoint id.
 
-- Panes render from `previewListsById ?? store.listsById`. That's the only
-  interception point; panes/rows know nothing about dragging.
-- `onDragOver`: resolve the drop target from `over`'s DragData (a todo → that
-  todo's list + index; a list → append). Compute
-  `moveTodoToList(previewState, …)` and set the result as the preview. dnd-kit
-  fires this continuously; each update re-renders both panes, which is the
-  re-homing effect.
-- `onDragEnd`: commit via the store action `moveTodo(todoId, targetListId,
-index)` — same pure op — then clear the preview. Store updates synchronously,
-  so the frame after the drop renders identical positions: no flicker by
-  construction.
-- `onDragCancel`: clear the preview. Everything snaps back.
-- `DragOverlay` shows the floating row (same pattern as the sidebar's
-  `ProjectRowPreview`); the in-list original renders as a placeholder while
-  dragging.
+Handlers:
 
-Note: `todosById` is never part of the preview — only id arrays move. Title
-edits etc. keep flowing from the store even mid-drag.
+- `onDragStart`: record checkpoint + active todo.
+- `onDragOver`: resolve the target (over a todo → that todo's `listId` and
+  index within its slice; over a list area → append) and call `moveTodo`.
+  Guard: skip if the todo is already at the target position.
+- `onDragEnd`: `addCheckpoint("move task")`, clear active state.
+- `onDragCancel`: `goTo(preDragCheckpointId)`, clear active state.
+- `DragOverlay` renders the floating row (`TaskRow` reads by id, so the
+  overlay is just `<TaskRow todoId={activeTodoId} />` styled as a card); the
+  in-list original renders as a placeholder while dragging.
 
 ## Step 3 — Collision detection
 
@@ -86,13 +104,14 @@ focustask's `createCardCollisionDetection` + `resolveCellPaddingCollisions`
 
 ## Step 5 — Today-pane extras
 
-- Project badge on Today rows (done in the store rewrite via `Todo.projectId`).
-- Right-click context menu on Today rows → "Unschedule": store action
-  `unscheduleTodo(todoId)` moves the id from Today's array back to
-  `projectId`'s array (append). Only shown for tasks that have a project.
+- Project badge on Today rows (done — driven by `projectId`).
+- Right-click context menu on Today rows → "Unschedule": calls
+  `unscheduleTodo(todoId)` (moves the todo back to its `projectId` list,
+  appended). Only shown for todos that have a project.
 
 ## Later / optional
 
 - Keyboard sensor + `sortableKeyboardCoordinates` for accessible dragging
   (focustask does this in `use-board-planner-dnd.tsx`).
+- App-wide undo/redo UI on top of the same checkpoints.
 - Auto-scroll tuning inside panes for long lists.

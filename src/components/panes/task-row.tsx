@@ -1,38 +1,38 @@
-import { useTasksStore } from "../../stores/use-tasks-store"
-import type { Todo } from "../../types"
+import { useCell } from "../../db"
+import { deleteTodo, toggleTodo } from "../../lib/task-operations"
+import type { TodoId } from "../../types"
 
 export default function TaskRow({
   showProject = false,
-  todo,
+  todoId,
 }: {
   showProject?: boolean
-  todo: Todo
+  todoId: TodoId
 }) {
-  const toggleTodo = useTasksStore((state) => state.toggleTodo)
-  const deleteTodo = useTasksStore((state) => state.deleteTodo)
-  const projectName = useTasksStore((state) =>
-    todo.projectId === undefined
-      ? undefined
-      : state.listsById[todo.projectId]?.name,
-  )
+  const title = useCell("todos", todoId, "title")
+  const isCompleted = useCell("todos", todoId, "isCompleted") === true
+  const projectId = useCell("todos", todoId, "projectId")
+  const projectName = useCell("lists", projectId ?? "", "name")
+
+  if (title === undefined) {
+    return null
+  }
 
   return (
     <li className="flex items-center gap-3 rounded-lg border border-neutral-200 p-3">
       <input
-        aria-label={`Mark ${todo.title} complete`}
-        checked={todo.isCompleted}
+        aria-label={`Mark ${title} complete`}
+        checked={isCompleted}
         className="size-4 accent-neutral-900"
-        onChange={() => toggleTodo(todo.id)}
+        onChange={() => toggleTodo(todoId)}
         type="checkbox"
       />
       <span
         className={`flex-1 ${
-          todo.isCompleted
-            ? "text-neutral-400 line-through"
-            : "text-neutral-800"
+          isCompleted ? "text-neutral-400 line-through" : "text-neutral-800"
         }`}
       >
-        {todo.title}
+        {title}
         {showProject && projectName !== undefined && (
           <span className="ml-2 rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
             {projectName}
@@ -40,9 +40,9 @@ export default function TaskRow({
         )}
       </span>
       <button
-        aria-label={`Delete ${todo.title}`}
+        aria-label={`Delete ${title}`}
         className="text-sm text-neutral-400 transition hover:text-red-600"
-        onClick={() => deleteTodo(todo.id)}
+        onClick={() => deleteTodo(todoId)}
         type="button"
       >
         Delete
