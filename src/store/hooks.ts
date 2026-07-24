@@ -7,6 +7,9 @@ import type { Schemas } from "./schema"
 // else in the app imports its hooks from here.
 const UiReact = UiReactModule as unknown as UiReactModule.WithSchemas<Schemas>
 
+// Readers, plus the setup hooks the provider needs. TinyBase's row/cell
+// writing hooks are deliberately not re-exported: every table mutation goes
+// through src/store/operations, so components have no way to reach for one.
 export const {
   Provider,
   useCell,
@@ -15,9 +18,7 @@ export const {
   useCreateIndexes,
   useCreatePersister,
   useCreateStore,
-  useDelRowCallback,
   useIndexes,
-  useSetCellCallback,
   useSetValueCallback,
   useSliceRowIds,
   useStore,

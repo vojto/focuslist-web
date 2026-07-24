@@ -1,9 +1,9 @@
 import { useEditTodo, useIsPaneEditing } from "../../hooks/use-todo-editing"
 import { useCell, useDb } from "../../store/hooks"
 import { addTodo } from "../../store/operations/todos"
-import { PROJECT_PLACEHOLDER_NAME } from "../../store/schema"
 import type { ListId, PaneId } from "../../store/schema"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
+import { displayName, PROJECT_PLACEHOLDER_NAME } from "../../ui/display-name"
 import ToolbarButton from "../../ui/toolbar-button"
 import TaskList from "../task-list/task-list"
 
@@ -21,9 +21,11 @@ export default function TaskListPane({
   const editTodo = useEditTodo(paneId)
   const isToday = kind === "today"
   // An unnamed project shows the placeholder title in gray, matching its
-  // sidebar row.
-  const isPlaceholderTitle = !isToday && (name ?? "").trim() === ""
-  const title = isPlaceholderTitle ? PROJECT_PLACEHOLDER_NAME : name
+  // sidebar row. Today always has its name.
+  const { isPlaceholder, text: title } = displayName(
+    name,
+    PROJECT_PLACEHOLDER_NAME,
+  )
 
   // One transaction, so the new row's first render is already in edit mode.
   const handleNewTask = () => {
@@ -56,7 +58,7 @@ export default function TaskListPane({
                   )}
                   <h1
                     className={`text-2xl font-semibold tracking-tight ${
-                      isPlaceholderTitle ? "text-neutral-400" : ""
+                      isPlaceholder ? "text-neutral-400" : ""
                     }`}
                   >
                     {title}

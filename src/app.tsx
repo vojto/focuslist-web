@@ -1,10 +1,10 @@
-import FocusScreen from "./screens/focus-screen"
+import MainScreen from "./screens/main-screen"
 import StoreProvider from "./store/store-provider"
 
 export default function App() {
   return (
     <StoreProvider>
-      <FocusScreen />
+      <MainScreen />
     </StoreProvider>
   )
 }

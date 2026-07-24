@@ -68,14 +68,16 @@ time. This changes how you should write React here:
   `listsByKind` — ordered views come from their slices), checkpoints, and a
   localStorage persister. Children render only after persisted data loads.
   The Today list row is a structural invariant, restored on load if missing.
-- All mutations live in `src/store/operations/` (`lists.ts`, `todos.ts`);
-  components never write cells directly. `moveTodo(db, todoId, listId,
-index?)` is the single mutation for drops; its `index` is relative to the
-  target list **without** the dragged todo. Ordering uses fractional
-  positions (midpoint inserts, no renumbering).
+- All mutations live in `src/store/operations/` (`lists.ts`, `todos.ts`,
+  `ui-state.ts`); components never write cells directly. `moveTodo(db,
+todoId, listId, index?)` is the single mutation for drops; its `index` is
+  relative to the target list **without** the dragged todo. Ordering uses
+  fractional positions (midpoint inserts, no renumbering).
 - Hooks come from `src/store/hooks.ts` (the single schema-typed cast of
   `tinybase/ui-react/with-schemas`); `useDb()` bundles store + indexes for
-  the operations layer.
+  the operations layer. TinyBase's row/cell writing hooks are deliberately
+  not re-exported there, so a component has nothing to reach for but the
+  operations.
 - Checkpoints are the undo mechanism. A drag is one undo step:
   `addCheckpoint()` at drag start, `goTo(preDragId)` on cancel,
   `addCheckpoint("Move task")` on drop.
@@ -83,15 +85,19 @@ index?)` is the single mutation for drops; its `index` is relative to the
   `node_modules/tinybase/@types/` — do not trust training data.
 - UI state that only one component needs (in-flight pane widths during a
   drag, an edit draft) is plain React state. UI state a second component
-  reads goes in TinyBase values as an id/pane pair: selection
-  (`selectedTodoId` + `selectedTodoPaneId`) and inline edit mode
-  (`editingTodoId` + `editingTodoPaneId`). Both pairs are read back through
-  the store (`use-todo-selection.ts`, `use-todo-editing.ts`), so a stale
-  pair — the row was deleted, the pane now shows another list — is inert and
-  needs no cleanup. Both pairs are listed in `SESSION_VALUE_IDS` and cleared
-  on load in `store-provider.tsx`: they are values so several components can
-  read them, not so they survive a reload. Layout and `selectedProjectId`
-  are the document's and do persist.
+  reads goes in TinyBase values, written through
+  `operations/ui-state.ts` and read through the matching hooks
+  (`use-todo-selection.ts`, `use-todo-editing.ts`, `use-project-editing.ts`,
+  `use-selected-project.ts`) — keyboard commands and components then move
+  the selection the same way. A todo's selection and edit mode are each an
+  id/pane pair (`selectedTodoId` + `selectedTodoPaneId`, `editingTodoId` +
+  `editingTodoPaneId`), so two panes can never both claim one; projects need
+  no pane, there being one project list. Every pair resolves through the
+  store, so a stale one — the row was deleted, the pane now shows another
+  list — is inert and needs no cleanup. All of them are listed in
+  `SESSION_VALUE_IDS` and cleared on load in `store-provider.tsx`: they are
+  values so several components can read them, not so they survive a reload.
+  Layout and `selectedProjectId` are the document's and do persist.
 
 ## Drag and drop (@dnd-kit/react)
 
@@ -99,7 +105,7 @@ index?)` is the single mutation for drops; its `index` is relative to the
 0.x rewrite. The installed type declarations are the source of truth, not
 docs or memory.
 
-- Two independent `DragDropProvider`s: tasks in `focus-screen.tsx`, project
+- Two independent `DragDropProvider`s: tasks in `main-screen.tsx`, project
   reordering in `sidebar/project-list.tsx`.
 - Rows are `useSortable` (`id`, `index`, `group` = list id, `type`/`accept`).
   Clone feedback is per-entity plugin config —
@@ -142,10 +148,15 @@ docs or memory.
   next to `task-list.tsx`). Only generic hooks with no ties to a single
   component belong in `src/hooks/`.
 - **Creation is inline, never a dialog.** "New project" and "New task"
-  create an untitled row right away; "New task" also opens its inline editor
-  by setting the edit values in the same transaction as the insert. An empty
-  name/title renders as a gray placeholder (`PROJECT_PLACEHOLDER_NAME`,
-  `TODO_PLACEHOLDER_TITLE`) — committing an empty draft is a no-op, so a row
-  can stay untitled. Double-click starts the inline rename.
+  create an untitled row right away and open its inline editor, by setting
+  the edit value in the same transaction as the insert. Both rows rename
+  through one `ui/inline-edit-input.tsx`, which owns the draft and the rule
+  for what is worth committing — an empty or unchanged draft commits
+  nothing, so a row can stay untitled. Double-click starts a rename.
+- **Unnamed rows show a placeholder, not an empty line.** Anything that
+  renders a name runs it through `displayName()` in `ui/display-name.ts`
+  (which also owns `PROJECT_PLACEHOLDER_NAME` / `TODO_PLACEHOLDER_TITLE`),
+  so the gray "New Project" / "New Task" state looks the same in the
+  sidebar, in a pane title, and in a task row.
 - Generic presentational primitives (buttons, menus, separators) live in
   `src/ui/`.

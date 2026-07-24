@@ -11,12 +11,6 @@ export const TODAY_LIST_ID = "today"
 export const PROJECT_PANE_ID = "left"
 export const TODAY_PANE_ID = "right"
 
-// Shown wherever a project with an empty name is rendered.
-export const PROJECT_PLACEHOLDER_NAME = "New Project"
-
-// Shown wherever a todo with an empty title is rendered.
-export const TODO_PLACEHOLDER_TITLE = "New Task"
-
 export type TodoId = string
 export type ListId = string
 // Identifies a task pane on screen ("left", "right"), not the list it

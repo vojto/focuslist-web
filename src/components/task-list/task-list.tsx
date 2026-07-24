@@ -1,35 +1,17 @@
 import { CollisionPriority } from "@dnd-kit/abstract"
 import { useDroppable } from "@dnd-kit/react"
-import { useEffect, useRef, type ReactNode } from "react"
-import type { RefObject } from "react"
+import { useRef, type ReactNode } from "react"
 import { useFlipList } from "../../hooks/use-flip-list"
 import { useSelectTodo } from "../../hooks/use-todo-selection"
-import { useCell, useSliceRowIds, useValue } from "../../store/hooks"
+import { useCell, useSliceRowIds } from "../../store/hooks"
 import type { ListId, PaneId } from "../../store/schema"
 import TaskRow from "./task-row"
 
-// Keeps a keyboard-moved selection on screen: arrowing past the edge of the
-// pane scrolls it just far enough back into view. The lookup is scoped to
-// this list, so the pane that doesn't hold the selection finds nothing and
-// stays put, and "nearest" makes an already-visible row a no-op — a click
-// never scrolls.
-function useScrollSelectionIntoView(
-  listRef: RefObject<HTMLUListElement | null>,
-) {
-  const selectedTodoId = useValue("selectedTodoId")
-  useEffect(() => {
-    if (selectedTodoId === undefined) {
-      return
-    }
-    listRef.current
-      ?.querySelector(`[data-flip-id="${selectedTodoId}"]`)
-      ?.scrollIntoView({ block: "nearest" })
-  }, [listRef, selectedTodoId])
-}
-
-// The scrollable task area of a pane. The whole area is a drop target so
-// drags land on empty lists and in the padding around the rows; low
-// priority lets hovered rows win.
+// The scrollable task area of a pane. The whole area registers as a drop
+// target: placement is decided from rectangles rather than from the
+// library's collisions (see use-task-dnd), and this registration is where
+// the pane's rectangle comes from. The low priority keeps a hovered row
+// reported as the current target, so dragover still fires row by row.
 export default function TaskList({
   header,
   listId,
@@ -55,7 +37,6 @@ export default function TaskList({
   // re-renders (visible as a crossing flicker).
   const listRef = useRef<HTMLUListElement>(null)
   useFlipList(listRef)
-  useScrollSelectionIntoView(listRef)
 
   return (
     <div
@@ -65,7 +46,7 @@ export default function TaskList({
       // up here but have already selected via the row's own handler.
       onPointerDown={(event) => {
         if (!(event.target as Element).closest('[role="option"]')) {
-          selectTodo(null)
+          selectTodo(undefined)
         }
       }}
     >

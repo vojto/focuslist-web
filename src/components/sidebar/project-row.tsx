@@ -3,15 +3,15 @@ import { useSortable } from "@dnd-kit/react/sortable"
 import {
   useEditProject,
   useIsProjectEditing,
-  useSelectProject,
-} from "../../hooks/use-selected-project"
+} from "../../hooks/use-project-editing"
+import { useSelectProject } from "../../hooks/use-selected-project"
 import { useCell, useDb } from "../../store/hooks"
 import { deleteProject, renameProject } from "../../store/operations/lists"
-import { PROJECT_PLACEHOLDER_NAME } from "../../store/schema"
 import type { ListId } from "../../store/schema"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
-import ProjectNameInput from "./project-name-input"
-import ProjectRowPreview from "./project-row-preview"
+import { displayName, PROJECT_PLACEHOLDER_NAME } from "../../ui/display-name"
+import InlineEditInput from "../../ui/inline-edit-input"
+import ProjectRowCard from "./project-row-card"
 
 export default function ProjectRow({
   index,
@@ -27,22 +27,9 @@ export default function ProjectRow({
   const db = useDb()
   const selectProject = useSelectProject()
   const name = useCell("lists", projectId, "name")
-  const hasName = (name ?? "").trim() !== ""
-  const displayLabel = hasName
-    ? (name ?? PROJECT_PLACEHOLDER_NAME)
-    : PROJECT_PLACEHOLDER_NAME
+  const { isPlaceholder, text } = displayName(name, PROJECT_PLACEHOLDER_NAME)
   const isEditing = useIsProjectEditing(projectId)
   const editProject = useEditProject()
-
-  // Renaming to nothing is a no-op, so a project can stay unnamed and keep
-  // showing its placeholder.
-  const commitName = (nextName: string) => {
-    const trimmed = nextName.trim()
-    if (trimmed !== "" && trimmed !== name) {
-      renameProject(db, projectId, trimmed)
-    }
-    editProject(undefined)
-  }
 
   const { ref } = useSortable({
     id: projectId,
@@ -70,15 +57,21 @@ export default function ProjectRow({
   if (isEditing) {
     return (
       <div ref={ref} className="w-full">
-        <ProjectRowPreview isSelected={isSelected} label={name ?? ""}>
-          <ProjectNameInput
-            initialName={name ?? ""}
+        <ProjectRowCard isSelected={isSelected} label={name ?? ""}>
+          <InlineEditInput
+            className="min-w-0 flex-1 bg-transparent p-0 outline-none"
+            initialValue={name ?? ""}
             onCancel={() => {
               editProject(undefined)
             }}
-            onCommit={commitName}
+            onCommit={(nextName) => {
+              if (nextName !== undefined) {
+                renameProject(db, projectId, nextName)
+              }
+              editProject(undefined)
+            }}
           />
-        </ProjectRowPreview>
+        </ProjectRowCard>
       </div>
     )
   }
@@ -94,10 +87,10 @@ export default function ProjectRow({
           onDoubleClick={handleEdit}
           type="button"
         >
-          <ProjectRowPreview
-            isPlaceholder={!hasName}
+          <ProjectRowCard
+            isPlaceholder={isPlaceholder}
             isSelected={isSelected}
-            label={displayLabel}
+            label={text}
           />
         </button>
       }

@@ -13,6 +13,18 @@ function isTextEntry(target: EventTarget | null): boolean {
   )
 }
 
+// Scrolls whatever a command just selected far enough to be visible. This
+// belongs to the keyboard and nowhere else: a pointer selects on pointerdown,
+// which is also drag start, and scrolling a list out from under a drag throws
+// off every viewport rectangle the drag and the FLIP animation measure.
+function revealSelectedTodo(todoId: string | undefined) {
+  if (todoId !== undefined) {
+    document
+      .querySelector(`[data-flip-id="${todoId}"]`)
+      ?.scrollIntoView({ block: "nearest" })
+  }
+}
+
 // The app's one keydown listener. It lives on the window rather than on the
 // rows so a shortcut works wherever focus happens to be, and it does nothing
 // itself beyond looking the event up in the keymap and running the command
@@ -38,6 +50,7 @@ export function useKeyboard(panes: readonly Pane[]) {
       // selection they just moved.
       event.preventDefault()
       COMMANDS[commandId].run({ db: { store, indexes }, panes })
+      revealSelectedTodo(store.getValue("selectedTodoId"))
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => {

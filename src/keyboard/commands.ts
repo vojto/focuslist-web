@@ -1,4 +1,5 @@
 import type { Db } from "../store/hooks"
+import { selectTodo } from "../store/operations/ui-state"
 import type { ListId, PaneId, TodoId } from "../store/schema"
 
 // A task pane on screen. Commands take them in left-to-right order, which is
@@ -20,13 +21,6 @@ export interface CommandContext {
 export interface Command {
   title: string
   run: (context: CommandContext) => void
-}
-
-function selectTodo(db: Db, todoId: TodoId, paneId: PaneId) {
-  db.store.transaction(() => {
-    db.store.setValue("selectedTodoId", todoId)
-    db.store.setValue("selectedTodoPaneId", paneId)
-  })
 }
 
 // Where a todo sits: the row order of the list holding it, and its place in
@@ -66,10 +60,11 @@ function moveSelection(context: CommandContext, offset: number) {
     selectEdgeTodo(context, offset)
     return
   }
+  const paneId = db.store.getValue("selectedTodoPaneId")
   const location = locate(db, todoId)
   const nextTodoId = location?.todoIds[location.index + offset]
-  if (nextTodoId !== undefined) {
-    db.store.setValue("selectedTodoId", nextTodoId)
+  if (nextTodoId !== undefined && paneId !== undefined) {
+    selectTodo(db, nextTodoId, paneId)
   }
 }
 

@@ -1,6 +1,9 @@
 import type { ReactNode } from "react"
 
-export default function ProjectRowPreview({
+// The row's visual card, the sidebar counterpart of TaskRowCard. Children
+// replace the label (the edit input slots in there) so the row keeps
+// identical dimensions in both modes.
+export default function ProjectRowCard({
   children,
   isPlaceholder = false,
   isSelected,

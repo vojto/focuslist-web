@@ -53,6 +53,19 @@ export function renameTodo(db: Db, todoId: TodoId, title: string) {
   db.store.setCell("todos", todoId, "title", title)
 }
 
+export function toggleTodoCompletion(db: Db, todoId: TodoId) {
+  db.store.setCell(
+    "todos",
+    todoId,
+    "isCompleted",
+    (wasCompleted) => wasCompleted !== true,
+  )
+}
+
+export function deleteTodo(db: Db, todoId: TodoId) {
+  db.store.delRow("todos", todoId)
+}
+
 // Moves a todo into a list at the given position (append when omitted).
 // Moving into a project reassigns belonging (projectId); moving onto Today
 // only changes placement — the todo still belongs to its project.

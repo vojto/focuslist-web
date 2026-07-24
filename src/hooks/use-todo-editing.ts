@@ -1,9 +1,10 @@
 import { useCell, useDb, useValue } from "../store/hooks"
+import { editTodo, stopEditingTodo } from "../store/operations/ui-state"
 import type { ListId, PaneId, TodoId } from "../store/schema"
 
-// Both hooks read the edit target through the store, so a stale pair (the
-// edited todo was deleted, or its pane now shows another list) is inert
-// rather than something to clean up.
+// Both readers resolve the edit target through the store, so a stale pair —
+// the row was deleted, or its pane now shows another list — is inert rather
+// than state to clean up.
 
 export function useIsTodoEditing(paneId: PaneId, todoId: TodoId): boolean {
   const isEditingTodo = useValue("editingTodoId") === todoId
@@ -11,27 +12,25 @@ export function useIsTodoEditing(paneId: PaneId, todoId: TodoId): boolean {
   return isEditingTodo && isEditingPane
 }
 
-// Lets a pane tint its background while one of its rows is being edited.
+// Lets a pane tint its background while one of its own rows is being edited.
 export function useIsPaneEditing(paneId: PaneId, listId: ListId): boolean {
   const editingTodoId = useValue("editingTodoId")
   const isEditingPane = useValue("editingTodoPaneId") === paneId
+  // "" stands in for "nothing is being edited": no row has that id, so the
+  // lookup misses and the pane reads as not editing.
   const editingListId = useCell("todos", editingTodoId ?? "", "listId")
   return isEditingPane && editingListId === listId
 }
 
 // Returns a callback that puts a todo into inline edit mode in the given
-// pane, or leaves edit mode when passed null.
+// pane, or leaves edit mode when passed undefined.
 export function useEditTodo(paneId: PaneId) {
-  const { store } = useDb()
-  return (todoId: TodoId | null) => {
-    store.transaction(() => {
-      if (todoId === null) {
-        store.delValue("editingTodoId")
-        store.delValue("editingTodoPaneId")
-      } else {
-        store.setValue("editingTodoId", todoId)
-        store.setValue("editingTodoPaneId", paneId)
-      }
-    })
+  const db = useDb()
+  return (todoId: TodoId | undefined) => {
+    if (todoId === undefined) {
+      stopEditingTodo(db)
+    } else {
+      editTodo(db, todoId, paneId)
+    }
   }
 }

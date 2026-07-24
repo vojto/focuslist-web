@@ -1,7 +1,5 @@
-import {
-  useEditProject,
-  useSelectProject,
-} from "../../hooks/use-selected-project"
+import { useEditProject } from "../../hooks/use-project-editing"
+import { useSelectProject } from "../../hooks/use-selected-project"
 import { useDb } from "../../store/hooks"
 import { addProject } from "../../store/operations/lists"
 import ToolbarButton from "../../ui/toolbar-button"
