@@ -30,18 +30,23 @@ function insertPosition(
     : (positionOf(db, previousId) + next) / 2
 }
 
-export function addTodo(db: Db, listId: ListId, title: string) {
+// A new todo starts untitled at the end of the list — the caller drops it
+// straight into inline editing, and an empty title renders as the "New Task"
+// placeholder. Returns undefined when the list does not exist.
+export function addTodo(db: Db, listId: ListId): TodoId | undefined {
   const kind = db.store.getCell("lists", listId, "kind")
   if (kind === undefined) {
-    return
+    return undefined
   }
-  db.store.setRow("todos", `todo-${crypto.randomUUID()}`, {
-    title,
+  const id: TodoId = `todo-${crypto.randomUUID()}`
+  db.store.setRow("todos", id, {
+    title: "",
     isCompleted: false,
     listId,
     position: insertPosition(db, listId),
     ...(kind === "project" ? { projectId: listId } : {}),
   })
+  return id
 }
 
 export function renameTodo(db: Db, todoId: TodoId, title: string) {

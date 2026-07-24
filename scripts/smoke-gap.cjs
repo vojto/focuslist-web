@@ -12,6 +12,27 @@ async function rowOrder(pane) {
   return texts.map((t) => t.replace(/Delete$/, "").trim())
 }
 
+// A new project is an untitled row; its name is typed into the inline
+// rename that a double-click opens.
+async function createProject(page, name) {
+  await page.getByRole("button", { name: "New project" }).click()
+  const row = page.locator('nav[aria-label="Projects"] > *').last()
+  await row.dblclick()
+  const input = row.locator("input")
+  await input.fill(name)
+  await input.press("Enter")
+}
+
+// "New task" appends an untitled row already in inline edit mode, so the
+// title goes straight into the open input.
+async function createTask(pane, title) {
+  await pane.getByRole("button", { name: "New task" }).click()
+  const input = pane.locator('ul > li input:not([type="checkbox"])')
+  await input.fill(title)
+  await input.press("Enter")
+  await pane.getByText(title).waitFor()
+}
+
 async function main() {
   const browser = await chromium.launch()
   const page = await browser.newPage()
@@ -34,19 +55,11 @@ async function main() {
   const panes = page.locator("main > section")
   const todayPane = panes.nth(0)
   for (const title of ["One", "Two", "Three", "Four"]) {
-    await todayPane.getByRole("button", { name: "New task" }).click()
-    await page.getByPlaceholder("Task name").fill(title)
-    await page.getByRole("button", { name: "Create" }).click()
-    await todayPane.getByText(title).waitFor()
+    await createTask(todayPane, title)
   }
-  await page.getByRole("button", { name: "New project" }).click()
-  await page.getByPlaceholder("Project name").fill("Website")
-  await page.getByRole("button", { name: "Create" }).click()
+  await createProject(page, "Website")
   const projectPane = panes.nth(1)
-  await projectPane.getByRole("button", { name: "New task" }).click()
-  await page.getByPlaceholder("Task name").fill("Dragged")
-  await page.getByRole("button", { name: "Create" }).click()
-  await projectPane.getByText("Dragged").waitFor()
+  await createTask(projectPane, "Dragged")
 
   const source = await projectPane.getByText("Dragged").boundingBox()
   const paneBox = await todayPane.boundingBox()

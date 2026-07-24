@@ -6,8 +6,8 @@ A local-first todo app ("focuslist"): a Today list plus per-project lists.
 React 19 + Vite + TypeScript (strict, `noUncheckedIndexedAccess`) +
 Tailwind v4. Domain data lives in TinyBase v9, persisted to localStorage.
 Drag and drop uses `@dnd-kit/react` 0.5.0. There is no router — the
-selected project is a store value (`selectedProjectId`); menus/dialogs
-build on `@base-ui/react`.
+selected project is a store value (`selectedProjectId`); menus build on
+`@base-ui/react`.
 
 ## Programming preferences
 
@@ -81,8 +81,17 @@ index?)` is the single mutation for drops; its `index` is relative to the
   `addCheckpoint("Move task")` on drop.
 - Verify TinyBase APIs against `node_modules/tinybase/agents.md` and
   `node_modules/tinybase/@types/` — do not trust training data.
-- Ephemeral UI state (todo selection, in-flight pane widths) is plain React
-  state; persistent UI state goes in TinyBase values.
+- UI state that only one component needs (in-flight pane widths during a
+  drag, an edit draft) is plain React state. UI state a second component
+  reads goes in TinyBase values as an id/pane pair: selection
+  (`selectedTodoId` + `selectedTodoPaneId`) and inline edit mode
+  (`editingTodoId` + `editingTodoPaneId`). Both pairs are read back through
+  the store (`use-todo-selection.ts`, `use-todo-editing.ts`), so a stale
+  pair — the row was deleted, the pane now shows another list — is inert and
+  needs no cleanup. Both pairs are listed in `SESSION_VALUE_IDS` and cleared
+  on load in `store-provider.tsx`: they are values so several components can
+  read them, not so they survive a reload. Layout and `selectedProjectId`
+  are the document's and do persist.
 
 ## Drag and drop (@dnd-kit/react)
 
@@ -132,7 +141,11 @@ docs or memory.
   component's feature folder (e.g. `src/components/task-list/use-task-dnd.ts`
   next to `task-list.tsx`). Only generic hooks with no ties to a single
   component belong in `src/hooks/`.
-- **Dialogs are per-entity** (`new-task-dialog.tsx`, `new-project-dialog.tsx`)
-  — no shared generic name-prompt dialog.
+- **Creation is inline, never a dialog.** "New project" and "New task"
+  create an untitled row right away; "New task" also opens its inline editor
+  by setting the edit values in the same transaction as the insert. An empty
+  name/title renders as a gray placeholder (`PROJECT_PLACEHOLDER_NAME`,
+  `TODO_PLACEHOLDER_TITLE`) — committing an empty draft is a no-op, so a row
+  can stay untitled. Double-click starts the inline rename.
 - Generic presentational primitives (buttons, menus, separators) live in
   `src/ui/`.

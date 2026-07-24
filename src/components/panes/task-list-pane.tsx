@@ -1,5 +1,4 @@
-import { useState } from "react"
-import { useIsPaneEditing } from "../../hooks/use-todo-editing"
+import { useEditTodo, useIsPaneEditing } from "../../hooks/use-todo-editing"
 import { useCell, useDb } from "../../store/hooks"
 import { addTodo } from "../../store/operations/todos"
 import { PROJECT_PLACEHOLDER_NAME } from "../../store/schema"
@@ -7,7 +6,6 @@ import type { ListId, PaneId } from "../../store/schema"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
 import ToolbarButton from "../../ui/toolbar-button"
 import TaskList from "../task-list/task-list"
-import NewTaskDialog from "./new-task-dialog"
 
 export default function TaskListPane({
   listId,
@@ -19,13 +17,23 @@ export default function TaskListPane({
   const db = useDb()
   const kind = useCell("lists", listId, "kind")
   const name = useCell("lists", listId, "name")
-  const [isCreating, setIsCreating] = useState(false)
-  const isEditing = useIsPaneEditing(paneId)
+  const isEditing = useIsPaneEditing(paneId, listId)
+  const editTodo = useEditTodo(paneId)
   const isToday = kind === "today"
   // An unnamed project shows the placeholder title in gray, matching its
   // sidebar row.
   const isPlaceholderTitle = !isToday && (name ?? "").trim() === ""
   const title = isPlaceholderTitle ? PROJECT_PLACEHOLDER_NAME : name
+
+  // One transaction, so the new row's first render is already in edit mode.
+  const handleNewTask = () => {
+    db.store.transaction(() => {
+      const todoId = addTodo(db, listId)
+      if (todoId !== undefined) {
+        editTodo(todoId)
+      }
+    })
+  }
 
   return (
     <section
@@ -62,25 +70,16 @@ export default function TaskListPane({
           </div>
         }
       >
-        <ContextMenuItem onClick={() => setIsCreating(true)}>
-          New task
-        </ContextMenuItem>
+        <ContextMenuItem onClick={handleNewTask}>New task</ContextMenuItem>
       </ContextMenu>
 
       {/* No own background so the pane's edit-mode tint covers it too. */}
       <footer className="h-12 shrink-0 border-t border-neutral-200 p-2">
-        <ToolbarButton onClick={() => setIsCreating(true)}>
+        <ToolbarButton onClick={handleNewTask}>
           <span aria-hidden="true">＋</span>
           New task
         </ToolbarButton>
       </footer>
-
-      {isCreating && (
-        <NewTaskDialog
-          onClose={() => setIsCreating(false)}
-          onCreate={(title) => addTodo(db, listId, title)}
-        />
-      )}
     </section>
   )
 }

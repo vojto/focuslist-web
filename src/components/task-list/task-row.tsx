@@ -2,8 +2,7 @@ import type { ReactNode } from "react"
 import { Feedback } from "@dnd-kit/dom"
 import { SortableKeyboardPlugin } from "@dnd-kit/dom/sortable"
 import { useSortable } from "@dnd-kit/react/sortable"
-import { useInlineRename } from "../../hooks/use-inline-rename"
-import { useBroadcastTodoEditing } from "../../hooks/use-todo-editing"
+import { useEditTodo, useIsTodoEditing } from "../../hooks/use-todo-editing"
 import {
   useIsTodoSelected,
   useSelectTodo,
@@ -15,8 +14,10 @@ import {
   useSetCellCallback,
 } from "../../store/hooks"
 import { renameTodo } from "../../store/operations/todos"
+import { TODO_PLACEHOLDER_TITLE } from "../../store/schema"
 import type { ListId, PaneId, TodoId } from "../../store/schema"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
+import TaskTitleInput from "./task-title-input"
 
 function useTodoCompletion(todoId: TodoId) {
   const isCompleted = useCell("todos", todoId, "isCompleted") === true
@@ -56,6 +57,11 @@ function TaskRowCard({
     return null
   }
 
+  // An untitled todo shows the placeholder title in gray, matching an
+  // unnamed project's row.
+  const isPlaceholderTitle = title.trim() === ""
+  const displayTitle = isPlaceholderTitle ? TODO_PLACEHOLDER_TITLE : title
+
   // The transition class rides along only in the editing state, so entering
   // edit mode animates but selection changes snap. It's scoped to
   // color/shadow — transitioning transform would fight the FLIP reorder
@@ -71,7 +77,7 @@ function TaskRowCard({
       className={`flex cursor-default select-none items-center gap-2.5 rounded-lg px-3 py-2 text-sm ${cardClass}`}
     >
       <input
-        aria-label={`Mark ${title} complete`}
+        aria-label={`Mark ${displayTitle} complete`}
         checked={isCompleted}
         className="size-4 shrink-0 appearance-none rounded border border-neutral-300 bg-white bg-cover bg-center bg-no-repeat transition-colors duration-100 checked:border-blue-500 checked:bg-blue-500 checked:bg-checkmark"
         onChange={toggleTodo}
@@ -80,10 +86,14 @@ function TaskRowCard({
       {children ?? (
         <span
           className={`flex-1 ${
-            isCompleted ? "text-neutral-400 line-through" : "text-neutral-800"
+            isCompleted
+              ? "text-neutral-400 line-through"
+              : isPlaceholderTitle
+                ? "text-neutral-400"
+                : "text-neutral-800"
           }`}
         >
-          {title}
+          {displayTitle}
           {/* {showProject && projectName !== undefined && (
             <span className="ml-2 rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
               {projectName}
@@ -112,16 +122,18 @@ export default function TaskRow({
   const isSelected = useIsTodoSelected(paneId, todoId)
   const selectTodo = useSelectTodo(paneId)
   const title = useCell("todos", todoId, "title")
-  const {
-    cancelEdit,
-    commitEdit,
-    draft,
-    initInput,
-    isEditing,
-    setDraft,
-    startEditing,
-  } = useInlineRename(title, (name) => renameTodo(db, todoId, name))
-  useBroadcastTodoEditing(paneId, isEditing)
+  const isEditing = useIsTodoEditing(paneId, todoId)
+  const editTodo = useEditTodo(paneId)
+
+  // Renaming to nothing is a no-op, so a task can stay untitled and keep
+  // showing its placeholder.
+  const commitTitle = (nextTitle: string) => {
+    const trimmed = nextTitle.trim()
+    if (trimmed !== "" && trimmed !== title) {
+      renameTodo(db, todoId, trimmed)
+    }
+    editTodo(null)
+  }
   // While dragging, the library floats the real row (data-dnd-dragging) and
   // keeps a cloned stand-in in the list flow (data-dnd-placeholder); the
   // data variants below style those two states. Every placement change
@@ -171,7 +183,7 @@ export default function TaskRow({
           // dropping the row into edit mode.
           onDoubleClick={(event) => {
             if (!(event.target instanceof HTMLInputElement)) {
-              startEditing()
+              editTodo(todoId)
             }
           }}
           // The pane behind us opens its own menu on background right-clicks;
@@ -193,20 +205,10 @@ export default function TaskRow({
             todoId={todoId}
           >
             {isEditing ? (
-              <input
-                ref={initInput}
-                className="min-w-0 flex-1 select-text bg-transparent p-0 text-neutral-800 outline-none"
-                onBlur={commitEdit}
-                onChange={(event) => setDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  event.stopPropagation()
-                  if (event.key === "Enter") {
-                    commitEdit()
-                  } else if (event.key === "Escape") {
-                    cancelEdit()
-                  }
-                }}
-                value={draft}
+              <TaskTitleInput
+                initialTitle={title ?? ""}
+                onCancel={() => editTodo(null)}
+                onCommit={commitTitle}
               />
             ) : undefined}
           </TaskRowCard>

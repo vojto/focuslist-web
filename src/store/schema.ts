@@ -5,8 +5,17 @@ export const STORE_ID = "focuslist"
 
 export const TODAY_LIST_ID = "today"
 
+// Where each list sits on screen. Today is the one pane that is always
+// visible, which makes it where the keyboard enters the app; the project
+// pane is there only while a project is selected.
+export const PROJECT_PANE_ID = "left"
+export const TODAY_PANE_ID = "right"
+
 // Shown wherever a project with an empty name is rendered.
 export const PROJECT_PLACEHOLDER_NAME = "New Project"
+
+// Shown wherever a todo with an empty title is rendered.
+export const TODO_PLACEHOLDER_TITLE = "New Task"
 
 export type TodoId = string
 export type ListId = string
@@ -41,10 +50,29 @@ export const VALUES_SCHEMA = {
   // One value pair means two panes can never both hold a selection.
   selectedTodoId: { type: "string" },
   selectedTodoPaneId: { type: "string" },
-  // The pane whose todo is currently in inline edit mode; absent when none
-  // is. Lets the pane tint its background while a row is being edited.
+  // The todo currently in inline edit mode, plus the pane it is edited in —
+  // the same id/pane pair as the selection, so only one row can ever be in
+  // edit mode. Owning this here (rather than as row-local state) is what
+  // lets "New task" create a row already in edit mode.
+  editingTodoId: { type: "string" },
   editingTodoPaneId: { type: "string" },
+  // The sidebar's counterpart to editingTodoId. No pane to pair it with —
+  // there is only one project list.
+  editingProjectId: { type: "string" },
 } as const
+
+// Values that belong to the session rather than to the saved document.
+// They live in the store so more than one component can read them, but they
+// are cleared on load (see store-provider.tsx) — reopening the app should
+// not restore a highlighted row or a half-typed title. Layout and the
+// selected project are the document's, and do persist.
+export const SESSION_VALUE_IDS = [
+  "selectedTodoId",
+  "selectedTodoPaneId",
+  "editingTodoId",
+  "editingTodoPaneId",
+  "editingProjectId",
+] as const
 
 export type Schemas = [typeof TABLES_SCHEMA, typeof VALUES_SCHEMA]
 

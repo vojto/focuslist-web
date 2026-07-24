@@ -5,6 +5,27 @@ const {
 const shots =
   "/private/tmp/claude-501/-Users-vojto-Code-Active-focuslist/098ab9c9-775b-4b99-9f6a-0292ff0862ce/scratchpad"
 
+// A new project is an untitled row; its name is typed into the inline
+// rename that a double-click opens.
+async function createProject(page, name) {
+  await page.getByRole("button", { name: "New project" }).click()
+  const row = page.locator('nav[aria-label="Projects"] > *').last()
+  await row.dblclick()
+  const input = row.locator("input")
+  await input.fill(name)
+  await input.press("Enter")
+}
+
+// "New task" appends an untitled row already in inline edit mode, so the
+// title goes straight into the open input.
+async function createTask(pane, title) {
+  await pane.getByRole("button", { name: "New task" }).click()
+  const input = pane.locator('ul > li input:not([type="checkbox"])')
+  await input.fill(title)
+  await input.press("Enter")
+  await pane.getByText(title).waitFor()
+}
+
 async function drag(page, from, to, { cancel = false } = {}) {
   const a = await from.boundingBox()
   const b = await to.boundingBox()
@@ -45,24 +66,16 @@ async function main() {
   await page.getByText("No project selected").waitFor()
 
   // Setup: project "Website" with two tasks, one task on Today
-  await page.getByRole("button", { name: "New project" }).click()
-  await page.getByPlaceholder("Project name").fill("Website")
-  await page.getByRole("button", { name: "Create" }).click()
+  await createProject(page, "Website")
   const panes = page.locator("main > section")
   const todayPane = panes.nth(0)
   const projectPane = panes.nth(1)
   await projectPane.locator("h1", { hasText: "Website" }).waitFor()
 
   for (const title of ["Design homepage", "Write copy"]) {
-    await projectPane.getByRole("button", { name: "New task" }).click()
-    await page.getByPlaceholder("Task name").fill(title)
-    await page.getByRole("button", { name: "Create" }).click()
-    await projectPane.getByText(title).waitFor()
+    await createTask(projectPane, title)
   }
-  await todayPane.getByRole("button", { name: "New task" }).click()
-  await page.getByPlaceholder("Task name").fill("Review PRs")
-  await page.getByRole("button", { name: "Create" }).click()
-  await todayPane.getByText("Review PRs").waitFor()
+  await createTask(todayPane, "Review PRs")
   console.log("setup done")
 
   // 1. Drag "Design homepage" from project onto Today's row

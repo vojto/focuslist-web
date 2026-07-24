@@ -12,6 +12,7 @@ import {
 import {
   createAppStore,
   INITIAL_CONTENT,
+  SESSION_VALUE_IDS,
   STORE_ID,
   TODAY_LIST_ID,
   TODAY_LIST_ROW,
@@ -41,6 +42,11 @@ export default function StoreProvider({ children }: { children: ReactNode }) {
       // data — restore it even if persisted data was damaged or predates it.
       if (!persister.getStore().hasRow("lists", TODAY_LIST_ID)) {
         persister.getStore().setRow("lists", TODAY_LIST_ID, TODAY_LIST_ROW)
+      }
+      // Selection and edit mode are store values so several components can
+      // read them, not so they can outlive the session.
+      for (const valueId of SESSION_VALUE_IDS) {
+        persister.getStore().delValue(valueId)
       }
       await persister.startAutoSave()
       setIsReady(true)
