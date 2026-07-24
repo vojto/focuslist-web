@@ -1,43 +1,11 @@
-import type { Todo } from "../../db"
-import { deleteTodo, toggleTodo, useTodos } from "../../lib/todos"
-
-function TaskRow({ todo }: { todo: Todo }) {
-  return (
-    <li className="flex items-center gap-3 rounded-lg border border-neutral-200 p-3">
-      <input
-        aria-label={`Mark ${todo.title} complete`}
-        checked={todo.isCompleted}
-        className="size-4 accent-neutral-900"
-        onChange={() => {
-          void toggleTodo(todo)
-        }}
-        type="checkbox"
-      />
-      <span
-        className={`flex-1 ${
-          todo.isCompleted
-            ? "text-neutral-400 line-through"
-            : "text-neutral-800"
-        }`}
-      >
-        {todo.title}
-      </span>
-      <button
-        aria-label={`Delete ${todo.title}`}
-        className="text-sm text-neutral-400 transition hover:text-red-600"
-        onClick={() => {
-          void deleteTodo(todo.id)
-        }}
-        type="button"
-      >
-        Delete
-      </button>
-    </li>
-  )
-}
+import { useState } from "react"
+import { createTodo, useTodayTodos } from "../../lib/todos"
+import NewTaskDialog from "./new-task-dialog"
+import TaskRow from "./task-row"
 
 export default function TodayPane() {
-  const todos = useTodos()
+  const todos = useTodayTodos()
+  const [isCreating, setIsCreating] = useState(false)
 
   return (
     <section className="flex h-full min-h-0 min-w-0 flex-col bg-white">
@@ -67,12 +35,20 @@ export default function TodayPane() {
       <footer className="h-12 shrink-0 border-t border-neutral-200 bg-white p-2">
         <button
           className="flex items-center gap-2 rounded-md px-2 py-1.5 font-medium text-neutral-500 outline-none transition active:bg-neutral-100"
+          onClick={() => setIsCreating(true)}
           type="button"
         >
           <span aria-hidden="true">＋</span>
           New task
         </button>
       </footer>
+
+      {isCreating && (
+        <NewTaskDialog
+          onClose={() => setIsCreating(false)}
+          onCreate={(title) => createTodo(title, { isToday: true })}
+        />
+      )}
     </section>
   )
 }

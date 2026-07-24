@@ -4,6 +4,7 @@ export interface Todo {
   id: number
   title: string
   isCompleted: boolean
+  isToday: boolean
   projectId?: number
 }
 
@@ -39,5 +40,20 @@ db.version(3)
       .toCollection()
       .modify((project: Project) => {
         project.order = order++
+      })
+  })
+
+db.version(4)
+  .stores({
+    todos: "++id, projectId",
+    projects: "++id, order",
+  })
+  .upgrade(async (tx) => {
+    // Todos predating isToday were all shown on the Today list.
+    await tx
+      .table("todos")
+      .toCollection()
+      .modify((todo: Todo) => {
+        todo.isToday = true
       })
   })

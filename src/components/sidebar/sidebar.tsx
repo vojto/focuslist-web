@@ -28,7 +28,7 @@ export default function Sidebar() {
 
       <footer className="h-12 shrink-0 border-t border-neutral-200 bg-neutral-100 p-2">
         <button
-          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left font-medium text-neutral-500 outline-none transition active:bg-neutral-200"
+          className="flex items-center gap-2 rounded-md px-2 py-1.5 font-medium text-neutral-500 outline-none transition active:bg-neutral-200"
           onClick={() => setIsCreating(true)}
           type="button"
         >
