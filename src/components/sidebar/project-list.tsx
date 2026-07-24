@@ -8,7 +8,11 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core"
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
+import {
+  arrayMove,
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
 import { useLiveQuery } from "dexie-react-hooks"
 import { useState } from "react"
 import { db } from "../../db"
@@ -18,16 +22,39 @@ import ProjectRow from "./project-row"
 import ProjectRowPreview from "./project-row-preview"
 
 export default function ProjectList() {
-  const projects = useLiveQuery(
+  const storedProjects = useLiveQuery(
     () => db.projects.orderBy("order").toArray(),
     [],
   )
   const selectedProjectId = useUiStore((state) => state.selectedProjectId)
   const setSelectedProjectId = useUiStore((state) => state.setSelectedProjectId)
   const [activeProjectId, setActiveProjectId] = useState<number | null>(null)
+  // Drag order applied synchronously on drop, so the drop animation targets
+  // the new slot while the Dexie write is still in flight.
+  const [pendingOrder, setPendingOrder] = useState<number[] | null>(null)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   )
+
+  // Once the live query reflects the dragged order, the override has served
+  // its purpose — drop it (state adjustment during render, per React docs).
+  if (
+    pendingOrder !== null &&
+    storedProjects?.length === pendingOrder.length &&
+    storedProjects.every((project, index) => project.id === pendingOrder[index])
+  ) {
+    setPendingOrder(null)
+  }
+
+  const projects = (() => {
+    if (storedProjects === undefined || pendingOrder === null) {
+      return storedProjects
+    }
+    const rank = new Map(pendingOrder.map((id, index) => [id, index]))
+    return [...storedProjects].sort(
+      (a, b) => (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity),
+    )
+  })()
   const activeProject =
     activeProjectId === null
       ? undefined
@@ -41,11 +68,21 @@ export default function ProjectList() {
     if (event.over === null || projects === undefined) {
       return
     }
-    void reorderProjects(
-      projects,
-      Number(event.active.id),
-      Number(event.over.id),
+    const activeId = Number(event.active.id)
+    const overId = Number(event.over.id)
+    const activeIndex = projects.findIndex((project) => project.id === activeId)
+    const overIndex = projects.findIndex((project) => project.id === overId)
+    if (activeIndex === -1 || overIndex === -1 || activeIndex === overIndex) {
+      return
+    }
+    setPendingOrder(
+      arrayMove(
+        projects.map((project) => project.id),
+        activeIndex,
+        overIndex,
+      ),
     )
+    void reorderProjects(projects, activeId, overId)
   }
   const handleDragCancel = () => {
     setActiveProjectId(null)

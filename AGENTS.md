@@ -57,5 +57,8 @@ automatically at build time. This changes how you should write React here:
   presentational preview component with `placeholder`/`overlay` states
   (`sidebar/project-row-preview.tsx`), a thin `useSortable` row wrapper, and a
   `DndContext` in the list component. Follow the same shape for new sortable
-  lists.
+  lists. Because Dexie writes land asynchronously, the list must apply the
+  new order synchronously in `onDragEnd` (a pending-order override cleared
+  once the live query catches up — see `sidebar/project-list.tsx`); otherwise
+  the drop animation targets the item's old slot and the list visibly snaps.
 - Verify with `npx tsc -b && npm run lint && npx prettier --check .`.
