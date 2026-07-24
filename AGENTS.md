@@ -96,16 +96,18 @@ docs or memory.
   Clone feedback is per-entity plugin config —
   `plugins: (defaults) => [...defaults, Feedback.configure({feedback:
 "clone"})]` — because 0.5.0 has no top-level `feedback` input.
-- Panes are plain `useDroppable` targets with `CollisionPriority.Low` so
-  hovered rows win.
+- Panes are plain `useDroppable` targets; task placement ignores the
+  library's collision targets, but the pane/row droppable registrations are
+  what the placement math reads its rectangles from.
 - TinyBase is the source of truth mid-drag
-  (`components/task-list/use-task-dnd.ts`): row hovers commit real moves
-  through `move()` from `@dnd-kit/helpers` on `dragover`; pane hovers
-  (padding, empty lists) place by row midlines and also commit on
-  `dragmove`, because `dragover` only fires when the hovered target changes
-  and `move()`'s own pane handling splits at the pane's center (wrong for
-  full-height panes). Never `preventDefault()` a dragmove — it freezes the
-  drag.
+  (`components/task-list/use-task-dnd.ts`): every `dragmove`/`dragover`
+  runs one placement rule — the pane is chosen by rect overlap (the card
+  moves to another pane once 30% of it sits over that pane, otherwise it
+  stays with the drag-start list) and the slot within the pane by row
+  midlines — and commits real moves. The rule depends only on the card's
+  rectangle, never on which list currently holds the todo, so repeated
+  commits can't oscillate. Never `preventDefault()` a dragmove — it
+  freezes the drag.
 - Mid-drag the library floats the real row (`data-dnd-dragging`) and keeps
   an inert clone in the flow (`data-dnd-placeholder`). Style those states
   with Tailwind data variants on the row element (see

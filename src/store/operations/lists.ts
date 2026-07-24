@@ -1,7 +1,9 @@
 import type { Db } from "../hooks"
 import type { ListId } from "../schema"
 
-export function addProject(db: Db, name: string): ListId {
+// A new project starts unnamed — the caller drops the row straight into
+// inline rename. An empty name renders as the "New Project" placeholder.
+export function addProject(db: Db): ListId {
   const id: ListId = `project-${crypto.randomUUID()}`
   const projectIds = db.indexes.getSliceRowIds("listsByKind", "project")
   const lastId = projectIds.at(-1)
@@ -9,7 +11,7 @@ export function addProject(db: Db, name: string): ListId {
     lastId === undefined
       ? 1
       : (db.store.getCell("lists", lastId, "position") ?? 0) + 1
-  db.store.setRow("lists", id, { kind: "project", name, position })
+  db.store.setRow("lists", id, { kind: "project", name: "", position })
   return id
 }
 

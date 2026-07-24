@@ -1,9 +1,9 @@
-import { move } from "@dnd-kit/helpers"
 import type {
   DragDropManager,
   DragEndEvent,
   DragMoveEvent,
   DragOverEvent,
+  DragStartEvent,
 } from "@dnd-kit/react"
 import { useRef } from "react"
 import { useCheckpoints, useDb, type Db } from "../../store/hooks"
@@ -13,6 +13,28 @@ import type { ListId, TodoId } from "../../store/schema"
 // TinyBase stays the source of truth mid-drag: every placement change is
 // committed with moveTodo, so the row order on screen is always the real
 // order and the drop has nothing left to do but seal the checkpoint.
+//
+// Placement ignores the library's collision targets entirely. On every
+// dragmove/dragover the same rule runs: the pane is chosen by how much of
+// the dragged card's rectangle overlaps each pane, and the slot within the
+// pane by row midlines. Both depend only on the card's current rectangle —
+// never on which list currently holds the todo — so re-running the rule
+// after a commit gives the same answer (no oscillation).
+
+// The dragged card moves to another pane once this share of it sits over
+// that pane; below it, the card stays with the list the drag started from.
+const TARGET_OVERLAP_RATIO = 0.3
+
+// Structural stand-in for @dnd-kit/geometry's BoundingRectangle (a
+// transitive dependency, so not importable directly).
+interface CardRectangle {
+  left: number
+  right: number
+  top: number
+  bottom: number
+  width: number
+  height: number
+}
 
 function commitMove(db: Db, todoId: TodoId, listId: ListId, index: number) {
   // moveTodo's index is relative to the target list without the dragged
@@ -26,15 +48,69 @@ function commitMove(db: Db, todoId: TodoId, listId: ListId, index: number) {
   }
 }
 
-// Hovering a pane (not a row: its padding, or an empty list) places by row
-// midlines, exactly like the old collision logic: the slot is before the
-// first row whose midline the dragged card's center is above — so below the
-// last row appends. `move`'s own pane handling splits at the pane's center
-// instead, which teleports "just below the rows" drops to the top.
-function commitPaneHover(
+// The dragged card's viewport rectangle. Keyboard drags may have no tracked
+// shape; the pointer position stands in as a point-sized card.
+function cardRectangle(event: DragMoveEvent | DragOverEvent): CardRectangle {
+  const shape = event.operation.shape
+  if (shape !== null) {
+    return shape.current.boundingRectangle
+  }
+  const { x, y } = event.operation.position.current
+  return { left: x, right: x + 1, top: y, bottom: y + 1, width: 1, height: 1 }
+}
+
+// How much of the card sits over the pane, as a share of the card's width.
+// The min() keeps the threshold reachable when a card picked up in a wide
+// pane is dragged into a much narrower one (the share is then measured
+// against the pane instead). Panes span the full column side by side, so
+// vertical overlap only gates.
+function paneOverlapRatio(card: CardRectangle, pane: DOMRect): number {
+  const overlapY =
+    Math.min(card.bottom, pane.bottom) - Math.max(card.top, pane.top)
+  const overlapX =
+    Math.min(card.right, pane.right) - Math.max(card.left, pane.left)
+  if (overlapY <= 0 || overlapX <= 0) {
+    return 0
+  }
+  return overlapX / Math.min(card.width, pane.width)
+}
+
+// Which list the card should live in right now, or null to leave the last
+// committed placement alone (card over neither pane, e.g. the sidebar).
+function placementListId(
+  manager: DragDropManager,
+  event: DragMoveEvent | DragOverEvent,
+  visibleListIds: readonly ListId[],
+  sourceListId: ListId,
+): ListId | null {
+  const card = cardRectangle(event)
+  let isOverSource = false
+  let targetListId: ListId | null = null
+  for (const listId of visibleListIds) {
+    const element = manager.registry.droppables.get(listId)?.element
+    if (element === undefined) {
+      continue
+    }
+    const ratio = paneOverlapRatio(card, element.getBoundingClientRect())
+    if (listId === sourceListId) {
+      isOverSource = ratio > 0
+    } else if (ratio >= TARGET_OVERLAP_RATIO) {
+      targetListId = listId
+    }
+  }
+  if (targetListId !== null) {
+    return targetListId
+  }
+  return isOverSource ? sourceListId : null
+}
+
+// The slot within the pane follows row midlines: the card goes before the
+// first row whose midline its center is above — so below the last row
+// appends.
+function commitPlacement(
   db: Db,
   manager: DragDropManager,
-  event: DragOverEvent | DragMoveEvent,
+  event: DragMoveEvent | DragOverEvent,
   listId: ListId,
   todoId: TodoId,
 ) {
@@ -57,71 +133,40 @@ function commitPaneHover(
   commitMove(db, todoId, listId, index)
 }
 
-// Hovering a row delegates the slot math to `move` from @dnd-kit/helpers,
-// fed with a Record<listId, todoIds[]> built from the visible lists' slices.
-function commitRowHover(
-  db: Db,
-  visibleListIds: readonly ListId[],
-  event: DragOverEvent,
-  todoId: TodoId,
-) {
-  const lists: Record<string, string[]> = {}
-  for (const listId of visibleListIds) {
-    lists[listId] = [...db.indexes.getSliceRowIds("todosByList", listId)]
-  }
-  const moved = move(lists, event)
-  for (const [listId, todoIds] of Object.entries(moved)) {
-    const index = todoIds.indexOf(todoId)
-    if (index !== -1) {
-      commitMove(db, todoId, listId, index)
-      return
-    }
-  }
-}
-
-// Shared guard for the drag handlers: only drags of real todos with a
-// current target are acted on.
-function todoDragOperands(db: Db, event: DragOverEvent | DragMoveEvent) {
-  const { source, target } = event.operation
-  if (source == null || target == null) {
-    return null
-  }
-  const todoId = String(source.id)
-  if (!db.store.hasRow("todos", todoId)) {
-    return null
-  }
-  return { targetId: String(target.id), todoId }
-}
-
 export function useTaskDnd(visibleListIds: readonly ListId[]) {
   const db = useDb()
   const checkpoints = useCheckpoints()
   const preDragCheckpointRef = useRef<string | null>(null)
+  const sourceListIdRef = useRef<ListId | null>(null)
 
-  const handleDragStart = () => {
+  const handleDragStart = (event: DragStartEvent) => {
     preDragCheckpointRef.current = checkpoints?.addCheckpoint() ?? null
+    const source = event.operation.source
+    sourceListIdRef.current =
+      source === null
+        ? null
+        : (db.store.getCell("todos", String(source.id), "listId") ?? null)
   }
 
-  const handleDragOver = (event: DragOverEvent, manager: DragDropManager) => {
-    const operands = todoDragOperands(db, event)
-    if (operands === null) {
+  // Wired to both dragmove and dragover: dragmove covers pointer movement,
+  // dragover covers target changes without it (rows scrolling under a
+  // stationary pointer). Never preventDefault() here — it freezes the drag.
+  const handleDrag = (
+    event: DragMoveEvent | DragOverEvent,
+    manager: DragDropManager,
+  ) => {
+    const source = event.operation.source
+    const sourceListId = sourceListIdRef.current
+    if (source === null || sourceListId === null) {
       return
     }
-    const { targetId, todoId } = operands
-    if (visibleListIds.includes(targetId)) {
-      commitPaneHover(db, manager, event, targetId, todoId)
-    } else {
-      commitRowHover(db, visibleListIds, event, todoId)
+    const todoId = String(source.id)
+    if (!db.store.hasRow("todos", todoId)) {
+      return
     }
-  }
-
-  // dragover only fires when the hovered droppable changes, but while
-  // hovering a pane the implied slot follows the pointer with no target
-  // change — so pane hovers also commit on every dragmove.
-  const handleDragMove = (event: DragMoveEvent, manager: DragDropManager) => {
-    const operands = todoDragOperands(db, event)
-    if (operands !== null && visibleListIds.includes(operands.targetId)) {
-      commitPaneHover(db, manager, event, operands.targetId, operands.todoId)
+    const listId = placementListId(manager, event, visibleListIds, sourceListId)
+    if (listId !== null) {
+      commitPlacement(db, manager, event, listId, todoId)
     }
   }
 
@@ -139,5 +184,5 @@ export function useTaskDnd(visibleListIds: readonly ListId[]) {
     checkpoints?.addCheckpoint("Move task")
   }
 
-  return { handleDragEnd, handleDragMove, handleDragOver, handleDragStart }
+  return { handleDrag, handleDragEnd, handleDragStart }
 }

@@ -56,7 +56,7 @@ export default function FocusScreen() {
     projectListId === undefined
       ? [TODAY_LIST_ID]
       : [TODAY_LIST_ID, projectListId]
-  const { handleDragEnd, handleDragMove, handleDragOver, handleDragStart } =
+  const { handleDrag, handleDragEnd, handleDragStart } =
     useTaskDnd(visibleListIds)
 
   const sidebarWidthAt = (pointerX: number) =>
@@ -77,8 +77,8 @@ export default function FocusScreen() {
   return (
     <DragDropProvider
       onDragStart={handleDragStart}
-      onDragMove={handleDragMove}
-      onDragOver={handleDragOver}
+      onDragMove={handleDrag}
+      onDragOver={handleDrag}
       onDragEnd={handleDragEnd}
     >
       <main

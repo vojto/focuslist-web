@@ -5,6 +5,9 @@ export const STORE_ID = "focuslist"
 
 export const TODAY_LIST_ID = "today"
 
+// Shown wherever a project with an empty name is rendered.
+export const PROJECT_PLACEHOLDER_NAME = "New Project"
+
 export type TodoId = string
 export type ListId = string
 // Identifies a task pane on screen ("left", "right"), not the list it

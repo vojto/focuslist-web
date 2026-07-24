@@ -4,6 +4,7 @@ import { useInlineRename } from "../../hooks/use-inline-rename"
 import { useSelectProject } from "../../hooks/use-selected-project"
 import { useCell, useDb } from "../../store/hooks"
 import { deleteProject, renameProject } from "../../store/operations/lists"
+import { PROJECT_PLACEHOLDER_NAME } from "../../store/schema"
 import type { ListId } from "../../store/schema"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
 import ProjectRowPreview from "./project-row-preview"
@@ -22,6 +23,10 @@ export default function ProjectRow({
   const db = useDb()
   const selectProject = useSelectProject()
   const name = useCell("lists", projectId, "name")
+  const hasName = (name ?? "").trim() !== ""
+  const displayLabel = hasName
+    ? (name ?? PROJECT_PLACEHOLDER_NAME)
+    : PROJECT_PLACEHOLDER_NAME
   const {
     cancelEdit,
     commitEdit,
@@ -90,7 +95,11 @@ export default function ProjectRow({
           onDoubleClick={handleEdit}
           type="button"
         >
-          <ProjectRowPreview isSelected={isSelected} label={name ?? ""} />
+          <ProjectRowPreview
+            isPlaceholder={!hasName}
+            isSelected={isSelected}
+            label={displayLabel}
+          />
         </button>
       }
     >

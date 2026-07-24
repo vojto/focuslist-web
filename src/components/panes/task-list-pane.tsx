@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useIsPaneEditing } from "../../hooks/use-todo-editing"
 import { useCell, useDb } from "../../store/hooks"
 import { addTodo } from "../../store/operations/todos"
+import { PROJECT_PLACEHOLDER_NAME } from "../../store/schema"
 import type { ListId, PaneId } from "../../store/schema"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
 import ToolbarButton from "../../ui/toolbar-button"
@@ -21,6 +22,10 @@ export default function TaskListPane({
   const [isCreating, setIsCreating] = useState(false)
   const isEditing = useIsPaneEditing(paneId)
   const isToday = kind === "today"
+  // An unnamed project shows the placeholder title in gray, matching its
+  // sidebar row.
+  const isPlaceholderTitle = !isToday && (name ?? "").trim() === ""
+  const title = isPlaceholderTitle ? PROJECT_PLACEHOLDER_NAME : name
 
   return (
     <section
@@ -41,8 +46,12 @@ export default function TaskListPane({
                       ★
                     </span>
                   )}
-                  <h1 className="text-2xl font-semibold tracking-tight">
-                    {name}
+                  <h1
+                    className={`text-2xl font-semibold tracking-tight ${
+                      isPlaceholderTitle ? "text-neutral-400" : ""
+                    }`}
+                  >
+                    {title}
                   </h1>
                 </header>
               }
