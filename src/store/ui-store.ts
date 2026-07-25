@@ -17,6 +17,7 @@ import type { ListId, PaneId, TodoId } from "./schema"
 // never both claim one; projects need no pane, there being one project list.
 // Every pair resolves through the store, so a stale one — the row was
 // deleted, the pane now shows another list — is inert and needs no cleanup.
+// Editing implies selection (see editTodo), so the two pairs never disagree.
 
 interface UiState {
   // Chrome (persisted).
@@ -72,8 +73,17 @@ export function clearTodoSelection() {
   })
 }
 
+// Editing a todo selects it: the row being typed into is the row the app is
+// pointing at, so the two pairs can never name different rows. That is what
+// keeps a newly created task from leaving the highlight behind on whichever
+// task was selected when it was created.
 export function editTodo(todoId: TodoId, paneId: PaneId) {
-  useUiStore.setState({ editingTodoId: todoId, editingTodoPaneId: paneId })
+  useUiStore.setState({
+    selectedTodoId: todoId,
+    selectedTodoPaneId: paneId,
+    editingTodoId: todoId,
+    editingTodoPaneId: paneId,
+  })
 }
 
 export function stopEditingTodo() {
