@@ -67,11 +67,7 @@ export default function SectionRow({
             }
           }}
         >
-          <SectionRowCard
-            isEditing={isEditing}
-            isSelected={isSelected}
-            todoId={todoId}
-          >
+          <SectionRowCard isSelected={isSelected} todoId={todoId}>
             {isEditing ? (
               <InlineEditInput
                 className="min-w-0 flex-1 select-text bg-transparent p-0 font-semibold text-blue-600 outline-none"

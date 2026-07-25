@@ -12,12 +12,15 @@ export function useIsTodoEditing(paneId: PaneId, todoId: TodoId): boolean {
   )
 }
 
-// Lets a pane tint its background while one of its own rows is being edited.
+// Lets a pane tint its background while one of its own tasks is being edited.
+// A section is excluded: naming a heading is not writing a task, and taking
+// the pane down to grey for it makes a rename look like a mode you enter.
 export function useIsPaneEditing(paneId: PaneId, listId: ListId): boolean {
   const editingTodoId = useUiStore((ui) => ui.editingTodoId)
   const isEditingPane = useUiStore((ui) => ui.editingTodoPaneId === paneId)
-  // "" stands in for "nothing is being edited": no row has that id, so the
-  // lookup misses and the pane reads as not editing.
+  // "" stands in for "nothing is being edited": no row has that id, so both
+  // lookups miss and the pane reads as not editing.
   const editingListId = useCell("todos", editingTodoId ?? "", "listId")
-  return isEditingPane && editingListId === listId
+  const editingType = useCell("todos", editingTodoId ?? "", "type")
+  return isEditingPane && editingListId === listId && editingType === "task"
 }
