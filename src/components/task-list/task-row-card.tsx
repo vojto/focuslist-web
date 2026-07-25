@@ -119,7 +119,7 @@ function TaskEstimateBadge({
 
   return (
     <span
-      className={`w-10 shrink-0 rounded px-1 py-0.5 text-center text-[11px] font-medium ${estimate.className} ${isMuted ? "opacity-40" : ""}`}
+      className={`w-9 shrink-0 text-center font-medium ${estimate.className} ${isMuted ? "opacity-40" : ""}`}
     >
       {estimate.label}
     </span>

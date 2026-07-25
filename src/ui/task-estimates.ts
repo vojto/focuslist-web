@@ -4,8 +4,9 @@
 // grow new kinds without the document knowing anything about them.
 
 interface TaskEstimateOption {
-  // Badge colors. The durations run green → amber → red so a glance down the
-  // list reads as "how hard is this"; the kinds sit off that scale.
+  // The badge's color, which is all the badge is — no chip behind it. The
+  // durations run green → amber → red so a glance down the list reads as "how
+  // hard is this"; the kinds sit off that scale.
   className: string
   // What the badge prints. Kept to three or four characters, so every badge
   // is the same width and the titles beside them stay in one column.
@@ -18,36 +19,12 @@ interface TaskEstimateOption {
 // every task already wearing it; add and retire keys instead. The order is
 // the order the menu offers them.
 const ESTIMATES = {
-  "10m": {
-    className: "bg-emerald-100 text-emerald-700",
-    label: "10m",
-    name: "10 minutes",
-  },
-  "30m": {
-    className: "bg-amber-100 text-amber-700",
-    label: "30m",
-    name: "30 minutes",
-  },
-  "60m": {
-    className: "bg-red-100 text-red-700",
-    label: "60m",
-    name: "60 minutes",
-  },
-  project: {
-    className: "bg-violet-100 text-violet-700",
-    label: "proj",
-    name: "Project",
-  },
-  errand: {
-    className: "bg-cyan-100 text-cyan-700",
-    label: "move",
-    name: "Errand",
-  },
-  call: {
-    className: "bg-indigo-100 text-indigo-700",
-    label: "call",
-    name: "Phone call",
-  },
+  "10m": { className: "text-emerald-600", label: "10m", name: "10 minutes" },
+  "30m": { className: "text-amber-600", label: "30m", name: "30 minutes" },
+  "60m": { className: "text-red-600", label: "60m", name: "60 minutes" },
+  project: { className: "text-violet-600", label: "proj", name: "Project" },
+  errand: { className: "text-cyan-600", label: "move", name: "Errand" },
+  call: { className: "text-indigo-600", label: "call", name: "Phone call" },
 } satisfies Record<string, TaskEstimateOption>
 
 // The same table for reading, keyed by anything: an `estimate` cell holds
