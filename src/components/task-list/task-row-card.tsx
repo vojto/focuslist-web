@@ -39,7 +39,7 @@ export default function TaskRowCard({
   // color/shadow — transitioning transform would fight the FLIP reorder
   // animation.
   const cardClass = isEditing
-    ? "bg-white shadow-md transition-[background-color,box-shadow] duration-100"
+    ? "bg-white shadow-md transition-[background-color,box-shadow] duration-300"
     : isSelected
       ? "bg-indigo-50"
       : ""
