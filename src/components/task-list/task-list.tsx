@@ -16,12 +16,10 @@ export default function TaskList({
   header,
   listId,
   paneId,
-  showProject = false,
 }: {
   header?: ReactNode
   listId: ListId
   paneId: PaneId
-  showProject?: boolean
 }) {
   const name = useCell("lists", listId, "name")
   const todoIds = useSliceRowIds("todosByList", listId)
@@ -57,7 +55,6 @@ export default function TaskList({
             key={todoId}
             listId={listId}
             paneId={paneId}
-            showProject={showProject}
             todoId={todoId}
           />
         ))}

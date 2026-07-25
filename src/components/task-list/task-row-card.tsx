@@ -14,13 +14,11 @@ export default function TaskRowCard({
   children,
   isEditing = false,
   isSelected = false,
-  showProject = false,
   todoId,
 }: {
   children?: ReactNode
   isEditing?: boolean
   isSelected?: boolean
-  showProject?: boolean
   todoId: TodoId
 }) {
   const title = useCell("todos", todoId, "title")
@@ -51,18 +49,38 @@ export default function TaskRowCard({
       ? "text-neutral-400"
       : "text-neutral-800"
 
+  // A completed task's icon fades with its title rather than filling in, the
+  // way a checkbox would: the line through the title is what says "done", and
+  // the icon is what you aim at to undo it.
+  const iconClass = isCompleted
+    ? "text-neutral-300"
+    : "text-neutral-400 hover:text-neutral-600"
+
   return (
     <div
       className={`flex cursor-default select-none items-center gap-2.5 rounded-lg px-3 py-2 text-sm ${cardClass}`}
     >
-      <input
+      {/* The project icon is the completion control: clicking it crosses the
+          task off. The negative margin keeps the tap target bigger than the
+          glyph without moving the row's layout.
+
+          The checkbox it replaces, parked while we try this:
+          <input
+            aria-label={`Mark ${text} complete`}
+            checked={isCompleted}
+            className="size-4 shrink-0 appearance-none rounded border border-neutral-300 bg-white bg-cover bg-center bg-no-repeat transition-colors duration-100 checked:border-blue-500 checked:bg-blue-500 checked:bg-checkmark"
+            onChange={toggleTodo}
+            type="checkbox"
+          /> */}
+      <button
         aria-label={`Mark ${text} complete`}
-        checked={isCompleted}
-        className="size-4 shrink-0 appearance-none rounded border border-neutral-300 bg-white bg-cover bg-center bg-no-repeat transition-colors duration-100 checked:border-blue-500 checked:bg-blue-500 checked:bg-checkmark"
-        onChange={toggleTodo}
-        type="checkbox"
-      />
-      {showProject && <TaskProjectIcon todoId={todoId} />}
+        aria-pressed={isCompleted}
+        className={`-m-1 shrink-0 rounded p-1 outline-none transition-colors ${iconClass}`}
+        onClick={toggleTodo}
+        type="button"
+      >
+        <TaskProjectIcon todoId={todoId} />
+      </button>
       {children ?? (
         <span className={`flex-1 ${titleClass}`}>
           {text}
@@ -81,23 +99,13 @@ export default function TaskRowCard({
   )
 }
 
-// Which project a task came from, worth showing only where that is not already
-// obvious — the Today pane, the one place tasks from different projects sit
-// together, which is what showProject means above. Its own component so the
-// panes that don't show it subscribe to nothing: a task created straight into
-// Today belongs to no project and draws nothing at all rather than a default.
+// Which project a task came from. Every task draws one, because the glyph is
+// also the row's completion control and a row cannot be missing that — a task
+// created straight into Today has no project and gets the default folder.
+// Its own component so resolving it stays out of the card's render.
 function TaskProjectIcon({ todoId }: { todoId: TodoId }) {
   const projectId = useCell("todos", todoId, "projectId")
   const icon = projectIcon(useCell("lists", projectId ?? "", "icon"))
 
-  if (projectId === undefined) {
-    return null
-  }
-
-  return (
-    <icon.Icon
-      aria-hidden="true"
-      className="size-3.5 shrink-0 text-neutral-400"
-    />
-  )
+  return <icon.Icon aria-hidden="true" className="size-3.5" />
 }

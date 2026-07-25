@@ -15,13 +15,11 @@ export default function TaskRow({
   index,
   listId,
   paneId,
-  showProject = false,
   todoId,
 }: {
   index: number
   listId: ListId
   paneId: PaneId
-  showProject?: boolean
   todoId: TodoId
 }) {
   const db = useDb()
@@ -53,10 +51,14 @@ export default function TaskRow({
           onPointerDown={() => {
             selectTodo(todoId, paneId)
           }}
-          // The guard keeps a fast double-toggle of the checkbox from
-          // dropping the row into edit mode.
+          // The guard keeps a fast double-toggle of the row's own controls —
+          // the completion icon, the rename input — from also dropping the
+          // row into edit mode.
           onDoubleClick={(event) => {
-            if (!(event.target instanceof HTMLInputElement)) {
+            const isOwnControl =
+              event.target instanceof Element &&
+              event.target.closest("button, input") !== null
+            if (!isOwnControl) {
               editTodo(todoId, paneId)
             }
           }}
@@ -77,7 +79,6 @@ export default function TaskRow({
           <TaskRowCard
             isEditing={isEditing}
             isSelected={isSelected}
-            showProject={showProject}
             todoId={todoId}
           >
             {isEditing ? (

@@ -66,7 +66,6 @@ export default function TaskListPane({
               }
               listId={listId}
               paneId={paneId}
-              showProject={isToday}
             />
           </div>
         }
