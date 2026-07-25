@@ -3,11 +3,9 @@
 ## About this project
 
 A local-first todo app ("focuslist"): a Today list plus per-project lists.
-React 19 + Vite + TypeScript (strict, `noUncheckedIndexedAccess`) +
-Tailwind v4. Domain data lives in TinyBase v9, persisted to localStorage.
-Drag and drop uses `@dnd-kit/react` 0.5.0. There is no router — the
-selected project is a store value (`selectedProjectId`); menus build on
-`@base-ui/react`.
+React 19 + Vite + TypeScript (strict, `noUncheckedIndexedAccess`) + Tailwind
+v4, TinyBase v9 for the document, Zustand for UI state, `@dnd-kit/react` for
+drag and drop, `@base-ui/react` for menus and dialogs. No router.
 
 ## Programming preferences
 
@@ -33,95 +31,59 @@ code structure, helper extraction, naming, change scope, and verification.
   unrelated edits pile up uncommitted. Do not wait for the user to look at
   the change first — a finished, clean-verifying task gets committed and
   pushed, and anything they want different afterwards is a follow-up commit.
+- The user edits the tree while you work. When `git status` shows files you
+  did not touch, stage your own paths explicitly instead of `git add -A`.
 - Verify with `npm run build && npm run lint && npx prettier --check .` —
-  all must pass clean before committing.
+  all must pass clean before committing. Don't pipe those through `tail`;
+  it swallows the exit code.
 
 ## React Compiler is enabled
 
-`babel-plugin-react-compiler` is wired into `@vitejs/plugin-react` in
-`vite.config.ts`. It memoizes components and values automatically at build
-time. This changes how you should write React here:
+`babel-plugin-react-compiler` memoizes components and values at build time,
+which changes how to write React here:
 
-- **Do not** use `useCallback`, `useMemo`, or `React.memo`. The compiler
-  makes them redundant. Write plain functions and plain values; if you see
-  manual memoization in a diff, it is almost certainly wrong for this
-  codebase. (Narrow exception: a `useCallback` whose identity gates a ref
-  callback, as in `use-inline-rename.ts`'s edit-input focus.)
-- Event handlers are plain inline functions or plain `const` functions in
-  the component body — no wrapping, no dependency arrays.
-- The one thing the compiler needs in return: follow the Rules of React. No
-  mutating props/state, no side effects during render, hooks only at the top
-  level. `eslint-plugin-react-hooks` (the `recommended-latest` config in
-  `eslint.config.js`) includes the compiler's lint rules and will flag
-  violations — a flagged component is silently skipped by the compiler
-  rather than broken, but fix the violation instead of working around it.
-- A function that calls no hooks is not a hook: don't give it a `use`
-  prefix; lint flags unnecessary `use` prefixes.
+- **Do not** use `useCallback`, `useMemo`, or `React.memo`. Write plain
+  functions and plain values; manual memoization in a diff is almost
+  certainly wrong for this codebase. (Narrow exception: a `useCallback` whose
+  identity gates a ref callback, as in `use-inline-rename.ts`.)
+- Follow the Rules of React in return. No mutating props/state, no side
+  effects during render, hooks only at the top level.
+  `eslint-plugin-react-hooks` includes the compiler's lint rules — fix what
+  it flags rather than working around it. A flagged component is silently
+  skipped by the compiler.
+- A function that calls no hooks is not a hook: don't give it a `use` prefix.
 
 ## Data layer (TinyBase for the document, Zustand for the UI)
 
-- Schema in `src/store/schema.ts`: tables `lists {kind, name, position}` and
-  `todos {title, isCompleted, listId, position, projectId}`, and an
-  **empty values schema** — the document is tables and nothing else. A todo
-  _shows_ in exactly one list (`listId` + fractional `position`) and
-  _belongs_ to a project (`projectId`) — scheduling onto Today never touches
-  `projectId`.
-- `src/store/store-provider.tsx` creates the store, indexes (`todosByList`,
-  `listsByKind` — ordered views come from their slices), checkpoints, and a
-  localStorage persister. Children render only after persisted data loads.
-  The Today list row is a structural invariant, restored on load if missing.
-- All mutations live in `src/store/operations/` (`lists.ts`, `todos.ts`,
-  `selection.ts`, `undo.ts`); components never write cells
-  directly. `moveTodo(db, todoId, listId, index?)` is the single mutation for
-  drops; its `index` is relative to the target list **without** the dragged
-  todo. Ordering uses fractional positions (midpoint inserts, no
-  renumbering).
-- The layer holds rules, not just writes. `selection.ts` owns what the
-  selection state _means_ — `selectedTodo(db)` resolves it (a selection
-  naming a deleted row is no selection), and moving it by row, by pane, or
-  off a row being deleted lives there too, so a menu and the keyboard get
-  the same answer. `src/keyboard/commands.ts` is left as a registry of ids,
-  titles and glue.
-- Hooks come from `src/store/hooks.ts` (the single schema-typed cast of
-  `tinybase/ui-react/with-schemas`); `useDb()` bundles store + indexes +
-  checkpoints for the operations layer. TinyBase's row/cell writing hooks are
-  deliberately not re-exported there, so a component has nothing to reach for
+- All mutations live in `src/store/operations/`; components never write
+  cells directly. The layer holds rules, not just writes — what a piece of
+  state _means_ belongs there too, so a menu and the keyboard get the same
+  answer.
+- Every user action seals exactly one undo step via `asUndoStep`. Building
+  blocks a gesture calls repeatedly leave sealing to the gesture. Never seal
+  on the way _into_ an action: a checkpoint taken before changing anything
+  undoes nothing, which reads as a dead keypress. `operations/undo.ts` is
+  the only module that touches checkpoints.
+- Ordering uses fractional positions (midpoint inserts, no renumbering).
+- Hooks come from `src/store/hooks.ts`, the single schema-typed cast of
+  `tinybase/ui-react/with-schemas`. TinyBase's row/cell _writing_ hooks are
+  deliberately not re-exported there — a component has nothing to reach for
   but the operations.
-- Checkpoints are the undo mechanism, and `operations/undo.ts` is the only
-  module that touches them (`store-provider.tsx` aside, which creates them):
-  a step is defined by when the app seals one, so a stray `addCheckpoint`
-  elsewhere is a redefinition of what one undo step means. Every user action
-  seals exactly one step via `asUndoStep(db, label, fn)`; the building blocks
-  a drag calls dozens of times (`addTodo`, `moveTodo`, `reorderProjects`)
-  leave sealing to the gesture, which uses `currentCheckpoint` at drag start,
-  `revertTo` on cancel and `sealUndoStep` on drop. Nothing seals on the way
-  _into_ an action — a checkpoint taken before changing anything is a step
-  that undoes nothing, which reads to the user as a dead keypress. Undo is
-  short because the store holds only the document: there is no selection or
-  column width in a checkpoint to travel back to.
-  `store-provider.tsx` calls `checkpoints.clear()` after the initial load so
-  loading the document is not itself undoable.
+- Keep the document to tables. The values schema is empty on purpose, so a
+  checkpoint is document state and nothing else and undo cannot rewind the
+  way the app looks.
+- UI state that only one component needs (an in-flight drag width, an edit
+  draft) is plain React state. Everything else about how the app looks lives
+  in `src/store/ui-store.ts` — including anything a second component could
+  need to open, close, or address. Components read it with
+  `useUiStore(selector)` or a named reader in `src/hooks/`; the operations
+  layer reads it outside React through `uiState()`. Selectors must return
+  primitives, never fresh objects.
+- Session state (selection, edit mode, open editor, open picker) is simply
+  not persisted; only chrome goes in `partialize`. Every id resolves against
+  the document, so a stale one is inert and needs no cleanup.
 - Verify TinyBase APIs against `node_modules/tinybase/agents.md` and
   `node_modules/tinybase/@types/` — do not trust training data.
-- UI state that only one component needs (in-flight pane widths during a
-  drag, an edit draft) is plain React state. Everything else about how the
-  app looks lives in the Zustand store in `src/store/ui-store.ts`, **not** in
-  TinyBase — that separation is what keeps undo from rewinding the selection
-  or a pane width. Components read it with `useUiStore(selector)` (or the
-  named readers in `src/hooks/`, e.g. `use-todo-selection.ts`) and write it
-  with the plain functions the store exports (`selectTodo`, `editTodo`, …);
-  the operations layer reads it outside React through `uiState()`. Selectors
-  must return primitives, never fresh objects.
-- Two lifetimes live in that store. Layout and `selectedProjectId` are the
-  app's chrome and persist under their own key (`focuslist-ui`), via the
-  `partialize` list; the selection and edit pairs are session state and are
-  simply not persisted — no clearing on load needed. A todo's selection and
-  edit mode are each an id/pane pair (`selectedTodoId` +
-  `selectedTodoPaneId`, `editingTodoId` + `editingTodoPaneId`), so two panes
-  can never both claim one; projects need no pane, there being one project
-  list. Every pair resolves against the document, so a stale one — the row
-  was deleted, the pane now shows another list — is inert and needs no
-  cleanup.
 
 ## Drag and drop (@dnd-kit/react)
 
@@ -129,29 +91,13 @@ time. This changes how you should write React here:
 0.x rewrite. The installed type declarations are the source of truth, not
 docs or memory.
 
-- Two independent `DragDropProvider`s: tasks in `main-screen.tsx`, project
-  reordering in `sidebar/project-list.tsx`.
-- Rows are `useSortable` (`id`, `index`, `group` = list id, `type`/`accept`).
-  Clone feedback is per-entity plugin config —
-  `plugins: (defaults) => [...defaults, Feedback.configure({feedback:
-"clone"})]` — because 0.5.0 has no top-level `feedback` input.
-- Panes are plain `useDroppable` targets; task placement ignores the
-  library's collision targets, but the pane/row droppable registrations are
-  what the placement math reads its rectangles from.
-- TinyBase is the source of truth mid-drag
-  (`components/task-list/use-task-dnd.ts`): every `dragmove`/`dragover`
-  runs one placement rule — the pane is chosen by rect overlap (the card
-  moves to another pane once 30% of it sits over that pane, otherwise it
-  stays with the drag-start list) and the slot within the pane by row
-  midlines — and commits real moves. The rule depends only on the card's
-  rectangle, never on which list currently holds the todo, so repeated
-  commits can't oscillate. Never `preventDefault()` a dragmove — it
-  freezes the drag.
-- Mid-drag the library floats the real row (`data-dnd-dragging`) and keeps
-  an inert clone in the flow (`data-dnd-placeholder`). Style those states
-  with Tailwind data variants on the row element (see
-  `task-list/task-row.tsx`); React-conditional classes won't work because
-  attribute changes are mirrored onto the clone.
+- Placement rules must depend only on the dragged card's rectangle, never on
+  which list currently holds the row, so repeated commits can't oscillate.
+- Never `preventDefault()` a dragmove — it freezes the drag.
+- Style the dragging and placeholder states with Tailwind data variants
+  (`data-[dnd-dragging]`, `data-[dnd-placeholder]`) on the row element.
+  React-conditional classes won't work: attribute changes are mirrored onto
+  the clone.
 
 ## Other conventions
 
@@ -163,38 +109,23 @@ docs or memory.
   - Interactive elements need accessible names and keyboard handling
     (jsx-a11y is strict about roles: e.g. an `li` may be `role="option"`,
     not `role="button"`).
+  - Don't hoist a looked-up component into a local (`const Icon = f(x)`) —
+    `static-components` flags it. Render it off the entry: `<icon.Icon />`.
+- **No focus rings anywhere** (see `src/index.css`). Selection is what the
+  app draws; where the keyboard is takes the same grey a hover does.
 - **Components** are grouped by feature under `src/components/`
   (`sidebar/`, `panes/`, `task-list/`). Default exports, kebab-case
-  filenames.
-- **Domain hooks are co-located with their component.** A hook that is
-  specific to one component — not reusable across components — lives in that
-  component's feature folder (e.g. `src/components/task-list/use-task-dnd.ts`
-  next to `task-list.tsx`). Only generic hooks with no ties to a single
-  component belong in `src/hooks/`.
+  filenames. Generic presentational primitives live in `src/ui/`.
+- **Domain hooks are co-located with their component.** A hook specific to
+  one component lives in that component's feature folder; only generic hooks
+  with no ties to a single component belong in `src/hooks/`.
 - **Creation is inline, never a dialog.** "New project" and "New task"
   create an untitled row right away and open its inline editor, by setting
   the edit value in the same transaction as the insert. Both rows rename
   through one `ui/inline-edit-input.tsx`, which owns the draft and the rule
-  for what is worth committing — an empty or unchanged draft commits
-  nothing, so a row can stay untitled. Double-click starts a rename.
-- **A project's icon is a catalog key, not a component.** The `icon` cell on
-  `lists` holds a key from `ui/project-icons.ts`, which — like its neighbour
-  `display-name.ts` — owns both the two dozen icons offered and the rule for
-  resolving one: `projectIcon()` answers with the folder for a project that
-  has no icon _and_ for a key a later version retires, so nothing that draws a
-  project can end up with a hole. Render `option.Icon` straight from the entry;
-  lifting the component into a local of its own is what the
-  `static-components` lint rule stops. Two places draw it: the sidebar row,
-  and a task row in Today (`showProject`, threaded from `task-list-pane.tsx`),
-  where it says which project the task came from — a task created straight
-  into Today has no `projectId` and shows nothing. The picker
-  (`sidebar/project-icon-dialog.tsx`, reached by right-clicking a project) is
-  the app's one dialog, and it is a dialog because picking from a grid is not
-  something a row can do inline; a pick commits and closes, so it needs no OK.
-- **Unnamed rows show a placeholder, not an empty line.** Anything that
-  renders a name runs it through `displayName()` in `ui/display-name.ts`
-  (which also owns `PROJECT_PLACEHOLDER_NAME` / `TODO_PLACEHOLDER_TITLE`),
-  so the gray "New Project" / "New Task" state looks the same in the
-  sidebar, in a pane title, and in a task row.
-- Generic presentational primitives (buttons, menus, separators) live in
-  `src/ui/`.
+  for what is worth committing. Double-click starts a rename.
+- **Anything absent resolves to something drawable, in one place.** A name
+  goes through `displayName()` (`ui/display-name.ts`), a project's icon
+  through `projectIcon()` (`ui/project-icons.ts`), so an unnamed row or an
+  unrecognized icon key looks the same everywhere and no caller re-derives
+  the fallback.
