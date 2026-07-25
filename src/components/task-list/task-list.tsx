@@ -5,7 +5,7 @@ import { useFlipList } from "../../hooks/use-flip-list"
 import { useCell, useSliceRowIds } from "../../store/hooks"
 import { clearTodoSelection } from "../../store/ui-store"
 import type { ListId, PaneId } from "../../store/schema"
-import TaskRow from "./task-row"
+import ListRow from "./list-row"
 
 // The scrollable task area of a pane. The whole area registers as a drop
 // target: placement is decided from rectangles rather than from the
@@ -50,7 +50,7 @@ export default function TaskList({
       {header}
       <ul aria-label={name} ref={listRef} role="listbox">
         {todoIds.map((todoId, index) => (
-          <TaskRow
+          <ListRow
             index={index}
             key={todoId}
             listId={listId}

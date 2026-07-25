@@ -20,7 +20,9 @@ async function createProject(page, name) {
 // title goes straight into the open input.
 async function createTask(pane, title) {
   await pane.getByRole("button", { name: "New task" }).click()
-  const input = pane.locator('ul > li input:not([type="checkbox"])')
+  const input = pane.locator(
+    'ul > li[data-item-type="task"] input:not([type="checkbox"])',
+  )
   await input.fill(title)
   await input.press("Enter")
   await pane.getByText(title).waitFor()

@@ -1,4 +1,5 @@
 import type { Db } from "../hooks"
+import { itemTypeOf } from "../item-type"
 import type { TodoId } from "../schema"
 import { closeTodo, openTodo, uiState } from "../ui-store"
 import { currentCheckpoint, revertTo, sealUndoStep } from "./undo"
@@ -15,6 +16,12 @@ import { currentCheckpoint, revertTo, sealUndoStep } from "./undo"
 // keybinding, the Done button and a future menu item all get one answer.
 
 export function openEditor(db: Db, todoId: TodoId) {
+  // A section is a heading: it has a name and nothing else to write, so
+  // there is no editor to open on one. Refused here rather than at each
+  // caller, so a keybinding and a menu item get the same answer.
+  if (itemTypeOf(db, todoId) === "section") {
+    return
+  }
   // Opening one task ends the session at any other: what was typed there
   // keeps its own step, and this editor gets a sealed point to return to.
   // With nothing open that is a no-op, and the checkpoint is simply read —

@@ -6,7 +6,11 @@ import {
   moveSelectionToPane,
   selectedTodo,
 } from "../store/operations/selection"
-import { createTodoInPane, deleteTodo } from "../store/operations/todos"
+import {
+  createSectionInPane,
+  createTodoInPane,
+  deleteTodo,
+} from "../store/operations/todos"
 import { editTodo } from "../store/ui-store"
 import { redo, undo } from "../store/operations/undo"
 import type { Pane } from "../store/schema"
@@ -40,8 +44,21 @@ export const COMMANDS = {
       }
     },
   },
+  "section.create": {
+    title: "New section",
+    run: ({ db, panes }) => {
+      const pane = activePane(panes)
+      if (pane !== undefined) {
+        createSectionInPane(db, pane.listId, pane.paneId)
+      }
+    },
+  },
+  // The three commands below work on whichever row is selected, task or
+  // section alike — which is why they are titled for an item rather than a
+  // task. What each one *means* per kind (an editor that refuses a heading,
+  // an undo step named for what went away) belongs to the operations layer.
   "task.edit": {
-    title: "Edit task",
+    title: "Rename item",
     run: ({ db }) => {
       const selected = selectedTodo(db)
       if (selected !== undefined) {
@@ -50,7 +67,7 @@ export const COMMANDS = {
     },
   },
   "task.delete": {
-    title: "Delete task",
+    title: "Delete item",
     run: ({ db }) => {
       const selected = selectedTodo(db)
       if (selected !== undefined) {

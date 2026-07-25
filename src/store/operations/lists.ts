@@ -43,14 +43,23 @@ export function setProjectIcon(db: Db, projectId: ListId, iconName: string) {
   })
 }
 
-// Deleting a project removes every todo that belongs to it, including todos
-// currently scheduled onto Today — belonging is exclusive, so they have no
-// other home.
+// Deleting a project takes its list with it: every row *living* in that list
+// goes, tasks and section headings alike. A task of the project's that has
+// been scheduled onto Today lives in Today, so it stays where it is and is
+// simply orphaned — it belongs to no project any more, and the day you
+// planned is not rearranged behind your back.
+//
+// Two rules, one sweep, because the two cells answer different questions:
+// `listId` is where a row is, `projectId` is what a task belongs to. A
+// section has only the first, which is what keeps headings from surviving
+// their own list.
 export function deleteProject(db: Db, projectId: ListId) {
   asUndoStep(db, "Delete project", () => {
     db.store.getRowIds("todos").forEach((todoId) => {
-      if (db.store.getCell("todos", todoId, "projectId") === projectId) {
+      if (db.store.getCell("todos", todoId, "listId") === projectId) {
         db.store.delRow("todos", todoId)
+      } else if (db.store.getCell("todos", todoId, "projectId") === projectId) {
+        db.store.delCell("todos", todoId, "projectId")
       }
     })
     db.store.delRow("lists", projectId)

@@ -28,6 +28,13 @@ export interface Pane {
 // Two tables, SQL-style. A todo *shows* in exactly one list (`listId`,
 // ordered by fractional `position` within it) but *belongs* to a project
 // (`projectId`), which scheduling onto Today never touches.
+//
+// The `todos` table holds both kinds of row a list can show: tasks and the
+// section headings between them. A section owns no tasks — the tasks under
+// it are simply the rows that follow it in the order, up to the next
+// heading. That is what keeps the table flat and reordering free: dragging a
+// row across a heading changes which section it is in without writing
+// anything but its own position.
 export const TABLES_SCHEMA = {
   lists: {
     kind: { type: "string" }, // "today" | "project"
@@ -38,6 +45,10 @@ export const TABLES_SCHEMA = {
     icon: { type: "string" },
   },
   todos: {
+    // What the row is: "task" or "section". Defaulted rather than optional so
+    // every todo written before sections existed reads as a task, and
+    // itemType() resolves whatever else the cell may hold (see ./item-type).
+    type: { type: "string", default: "task" },
     title: { type: "string" },
     // Long-form body text, edited in the task editor. Defaulted rather than
     // optional so the schema fills it in for todos written before it existed.

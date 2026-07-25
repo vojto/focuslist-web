@@ -3,10 +3,12 @@ import { SortableKeyboardPlugin } from "@dnd-kit/dom/sortable"
 import { useSortable } from "@dnd-kit/react/sortable"
 import type { ListId, TodoId } from "../../store/schema"
 
-// Registers a task row with the drag-drop provider and returns its ref. The
+// Registers a list row with the drag-drop provider and returns its ref. The
 // library configuration is fiddly enough to bury what a row actually does,
-// so it lives here rather than in the component.
-export function useSortableTaskRow({
+// so it lives here rather than in the component. Tasks and section headings
+// register identically — one sortable type, so a heading drags through the
+// same order the tasks do, which is what makes membership positional.
+export function useSortableRow({
   index,
   listId,
   todoId,

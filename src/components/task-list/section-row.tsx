@@ -1,18 +1,23 @@
 import { useIsTodoEditing } from "../../hooks/use-todo-editing"
 import { useIsTodoSelected } from "../../hooks/use-todo-selection"
 import { useCell, useDb } from "../../store/hooks"
-import { openEditor } from "../../store/operations/editor"
-import { deleteTodo, renameTodo } from "../../store/operations/todos"
+import {
+  deleteSectionWithTasks,
+  deleteTodo,
+  renameTodo,
+} from "../../store/operations/todos"
 import type { ListId, PaneId, TodoId } from "../../store/schema"
 import { editTodo, selectTodo, stopEditingTodo } from "../../store/ui-store"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
 import InlineEditInput from "../../ui/inline-edit-input"
-import TaskEstimateMenu from "./task-estimate-menu"
-import TaskRowCard from "./task-row-card"
+import SectionRowCard from "./section-row-card"
 import { useSortableRow } from "./use-sortable-row"
-import { useTodoCompletion } from "./use-todo-completion"
 
-export default function TaskRow({
+// A heading between tasks. It is a row like any other — selectable,
+// draggable, renamed in place — and deliberately has no notion of what sits
+// under it: the tasks in a section are whichever rows follow it, so dragging
+// one across the heading is the whole of moving it between sections.
+export default function SectionRow({
   index,
   listId,
   paneId,
@@ -27,11 +32,6 @@ export default function TaskRow({
   const isSelected = useIsTodoSelected(paneId, todoId)
   const title = useCell("todos", todoId, "title")
   const isEditing = useIsTodoEditing(paneId, todoId)
-  const { isCompleted, toggleTodo } = useTodoCompletion(todoId)
-  // While dragging, the library floats the real row (data-dnd-dragging) and
-  // keeps a cloned stand-in in the list flow (data-dnd-placeholder); the
-  // data variants below style those two states. Every placement change
-  // commits the real order, so the stand-in is always the true drop position.
   const ref = useSortableRow({ index, listId, todoId })
 
   return (
@@ -41,31 +41,23 @@ export default function TaskRow({
           ref={ref}
           className="touch-none data-[dnd-dragging]:rounded-lg data-[dnd-dragging]:bg-white data-[dnd-dragging]:shadow-lg data-[dnd-placeholder]:rounded-lg data-[dnd-placeholder]:bg-neutral-100 [&[data-dnd-placeholder]_div]:invisible"
           data-flip-id={todoId}
-          data-item-type="task"
-          // Focusable so keyboard users can select, and so the library's
-          // keyboard sorting can pick the row up.
+          data-item-type="section"
           aria-selected={isSelected}
           role="option"
           tabIndex={0}
-          // Selection happens on pointer down (not click) so a task is
-          // already selected when a drag starts, and stays highlighted
-          // while dragged.
           onPointerDown={() => {
             selectTodo(todoId, paneId)
           }}
-          // The guard keeps a fast double-toggle of the row's own controls —
-          // the completion icon, the rename input — from also dropping the
-          // row into edit mode.
+          // The guard keeps a double-click inside the rename input from
+          // dropping the row back into edit mode it is already in.
           onDoubleClick={(event) => {
             const isOwnControl =
               event.target instanceof Element &&
-              event.target.closest("button, input") !== null
+              event.target.closest("input") !== null
             if (!isOwnControl) {
               editTodo(todoId, paneId)
             }
           }}
-          // The pane behind us opens its own menu on background right-clicks;
-          // keep row right-clicks from reaching it so only the row menu opens.
           onContextMenu={(event) => {
             event.stopPropagation()
           }}
@@ -75,17 +67,10 @@ export default function TaskRow({
             }
           }}
         >
-          {/* Both modes render the same element tree — a branch returning a
-              different wrapper would remount the row and kill the css
-              transition into edit mode. */}
-          <TaskRowCard
-            isEditing={isEditing}
-            isSelected={isSelected}
-            todoId={todoId}
-          >
+          <SectionRowCard isSelected={isSelected} todoId={todoId}>
             {isEditing ? (
               <InlineEditInput
-                className="min-w-0 flex-1 select-text bg-transparent p-0 text-neutral-800 outline-none"
+                className="min-w-0 flex-1 select-text bg-transparent p-0 font-semibold text-neutral-800 outline-none"
                 initialValue={title ?? ""}
                 onCancel={() => {
                   stopEditingTodo()
@@ -98,28 +83,35 @@ export default function TaskRow({
                 }}
               />
             ) : undefined}
-          </TaskRowCard>
+          </SectionRowCard>
         </li>
       }
     >
       <ContextMenuItem
         onClick={() => {
-          openEditor(db, todoId)
+          editTodo(todoId, paneId)
         }}
       >
-        Open
+        Rename
       </ContextMenuItem>
-      <ContextMenuItem onClick={toggleTodo}>
-        {isCompleted ? "Mark incomplete" : "Mark complete"}
-      </ContextMenuItem>
-      <TaskEstimateMenu todoId={todoId} />
+      {/* Two deletions, because a heading covers rows it does not own:
+          taking it away on its own merges its tasks into the section above,
+          which is a different thing from taking them with it. */}
       <ContextMenuItem
         danger
         onClick={() => {
           deleteTodo(db, todoId)
         }}
       >
-        Delete
+        Delete section
+      </ContextMenuItem>
+      <ContextMenuItem
+        danger
+        onClick={() => {
+          deleteSectionWithTasks(db, todoId)
+        }}
+      >
+        Delete section and tasks
       </ContextMenuItem>
     </ContextMenu>
   )

@@ -5,6 +5,7 @@
 
 export const PROJECT_PLACEHOLDER_NAME = "New Project"
 export const TODO_PLACEHOLDER_TITLE = "New Task"
+export const SECTION_PLACEHOLDER_NAME = "New Section"
 
 export function displayName(name: string | undefined, placeholder: string) {
   const isPlaceholder = (name ?? "").trim() === ""

@@ -1,7 +1,10 @@
 import { useOpenTodoId } from "../../hooks/use-open-todo"
 import { useIsPaneEditing } from "../../hooks/use-todo-editing"
 import { useCell, useDb } from "../../store/hooks"
-import { createTodoInPane } from "../../store/operations/todos"
+import {
+  createSectionInPane,
+  createTodoInPane,
+} from "../../store/operations/todos"
 import type { ListId, PaneId } from "../../store/schema"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
 import { displayName, PROJECT_PLACEHOLDER_NAME } from "../../ui/display-name"
@@ -34,6 +37,10 @@ export default function TaskListPane({
 
   const handleNewTask = () => {
     createTodoInPane(db, listId, paneId)
+  }
+
+  const handleNewSection = () => {
+    createSectionInPane(db, listId, paneId)
   }
 
   return (
@@ -71,6 +78,9 @@ export default function TaskListPane({
         }
       >
         <ContextMenuItem onClick={handleNewTask}>New task</ContextMenuItem>
+        <ContextMenuItem onClick={handleNewSection}>
+          New section
+        </ContextMenuItem>
       </ContextMenu>
 
       {/* No own background so the pane's edit-mode tint covers it too. */}

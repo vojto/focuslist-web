@@ -5,9 +5,11 @@ const {
 // Mid-drag the dragged row floats out of the flow ([data-dnd-dragging],
 // position:fixed) while a cloned stand-in ([data-dnd-placeholder]) marks the
 // slot, so the in-flow row order is the lis without the floating one.
+// A list also shows section headings; this measures task rows, so it asks
+// for those by type rather than for every li.
 async function rowOrder(pane) {
   const texts = await pane
-    .locator("ul > li:not([data-dnd-dragging])")
+    .locator('ul > li[data-item-type="task"]:not([data-dnd-dragging])')
     .evaluateAll((els) => els.map((el) => (el.textContent ?? "").trim()))
   return texts.map((t) => t.replace(/Delete$/, "").trim())
 }
@@ -27,7 +29,9 @@ async function createProject(page, name) {
 // title goes straight into the open input.
 async function createTask(pane, title) {
   await pane.getByRole("button", { name: "New task" }).click()
-  const input = pane.locator('ul > li input:not([type="checkbox"])')
+  const input = pane.locator(
+    'ul > li[data-item-type="task"] input:not([type="checkbox"])',
+  )
   await input.fill(title)
   await input.press("Enter")
   await pane.getByText(title).waitFor()

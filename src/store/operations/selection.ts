@@ -135,3 +135,30 @@ export function moveSelectionOff(db: Db, todoId: TodoId) {
     selectTodo(successorId, selected.paneId)
   }
 }
+
+// The same, for a contiguous run of rows going at once — a section and the
+// tasks under it. Stepping off them one at a time would only walk the
+// selection onto the next row in the run, so it clears the whole run in one
+// move: onto the first row below it, or the one above when nothing survives.
+export function moveSelectionOffSpan(db: Db, todoIds: readonly TodoId[]) {
+  const selected = selectedTodo(db)
+  const firstId = todoIds[0]
+  if (
+    selected === undefined ||
+    firstId === undefined ||
+    !todoIds.includes(selected.todoId)
+  ) {
+    return
+  }
+  const location = locate(db, firstId)
+  const successorId =
+    location === undefined
+      ? undefined
+      : (location.todoIds[location.index + todoIds.length] ??
+        location.todoIds[location.index - 1])
+  if (successorId === undefined) {
+    clearTodoSelection()
+  } else {
+    selectTodo(successorId, selected.paneId)
+  }
+}

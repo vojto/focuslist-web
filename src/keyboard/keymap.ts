@@ -8,6 +8,7 @@ export const KEYMAP: Record<string, CommandId> = {
   ArrowRight: "selection.paneRight",
   ArrowLeft: "selection.paneLeft",
   c: "task.create",
+  "Shift+c": "section.create",
   Enter: "task.edit",
   Backspace: "task.delete",
   Delete: "task.delete",
