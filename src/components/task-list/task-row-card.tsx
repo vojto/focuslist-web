@@ -1,7 +1,7 @@
 import { StickyNote } from "lucide-react"
 import type { ReactNode } from "react"
 import { useCell } from "../../store/hooks"
-import type { TodoId } from "../../store/schema"
+import type { ListId, TodoId } from "../../store/schema"
 import { displayName, TODO_PLACEHOLDER_TITLE } from "../../ui/display-name"
 import { projectIcon } from "../../ui/project-icons"
 import { taskEstimate } from "../../ui/task-estimates"
@@ -86,6 +86,10 @@ export default function TaskRowCard({
 // earns the spot — so it becomes the control itself rather than pushing a
 // checkbox aside. One thing in the row's left column either way.
 //
+// A task created straight into Today belongs to no project, so it has no glyph
+// to show and falls back to the checkbox: a stand-in icon there would claim a
+// project the task doesn't have.
+//
 // The list is read off the todo rather than passed down: a row only ever
 // renders in the pane showing its list, so the row already knows.
 function TaskCompletionControl({
@@ -97,9 +101,10 @@ function TaskCompletionControl({
 }) {
   const listId = useCell("todos", todoId, "listId")
   const kind = useCell("lists", listId ?? "", "kind")
+  const projectId = useCell("todos", todoId, "projectId")
   const { isCompleted, toggleTodo } = useTodoCompletion(todoId)
 
-  if (kind !== "today") {
+  if (kind !== "today" || projectId === undefined) {
     return (
       <input
         aria-label={`Mark ${text} complete`}
@@ -127,7 +132,7 @@ function TaskCompletionControl({
       onClick={toggleTodo}
       type="button"
     >
-      <TaskProjectIcon todoId={todoId} />
+      <TaskProjectIcon projectId={projectId} />
     </button>
   )
 }
@@ -156,14 +161,12 @@ function TaskEstimateBadge({
 }
 
 // Which project a task came from — drawn only in Today, where rows from
-// different projects sit together and the question is worth answering. Every
-// row there draws one, because the glyph is also the completion control and a
-// row cannot be missing that: a task created straight into Today has no
-// project and gets the default folder. Its own component so resolving it
-// stays out of the control's render.
-function TaskProjectIcon({ todoId }: { todoId: TodoId }) {
-  const projectId = useCell("todos", todoId, "projectId")
-  const icon = projectIcon(useCell("lists", projectId ?? "", "icon"))
+// different projects sit together and the question is worth answering. Only
+// asked for a task that has a project; a project whose own icon is missing or
+// unrecognized still resolves to the default folder. Its own component so
+// resolving it stays out of the control's render.
+function TaskProjectIcon({ projectId }: { projectId: ListId }) {
+  const icon = projectIcon(useCell("lists", projectId, "icon"))
 
   return <icon.Icon aria-hidden="true" className="size-3.5" />
 }
