@@ -36,6 +36,9 @@ export const TABLES_SCHEMA = {
   },
   todos: {
     title: { type: "string" },
+    // Long-form body text, edited in the task editor. Defaulted rather than
+    // optional so the schema fills it in for todos written before it existed.
+    notes: { type: "string", default: "" },
     isCompleted: { type: "boolean", default: false },
     listId: { type: "string" },
     position: { type: "number" },

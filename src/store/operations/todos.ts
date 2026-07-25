@@ -67,9 +67,21 @@ export function createTodoInPane(db: Db, listId: ListId, paneId: PaneId) {
   })
 }
 
+// The two text writes the task editor makes. They are building blocks like
+// moveTodo: the editor writes on every keystroke so nothing is ever held only
+// in a textarea, and seals the whole stretch of typing as one step when the
+// field is left (see ./undo). A row rename is a whole action and seals itself.
+export function setTodoTitle(db: Db, todoId: TodoId, title: string) {
+  db.store.setCell("todos", todoId, "title", title)
+}
+
+export function setTodoNotes(db: Db, todoId: TodoId, notes: string) {
+  db.store.setCell("todos", todoId, "notes", notes)
+}
+
 export function renameTodo(db: Db, todoId: TodoId, title: string) {
   asUndoStep(db, "Rename task", () => {
-    db.store.setCell("todos", todoId, "title", title)
+    setTodoTitle(db, todoId, title)
   })
 }
 

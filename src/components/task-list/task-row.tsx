@@ -3,7 +3,12 @@ import { useIsTodoSelected } from "../../hooks/use-todo-selection"
 import { useCell, useDb } from "../../store/hooks"
 import { deleteTodo, renameTodo } from "../../store/operations/todos"
 import type { ListId, PaneId, TodoId } from "../../store/schema"
-import { editTodo, selectTodo, stopEditingTodo } from "../../store/ui-store"
+import {
+  editTodo,
+  openTodo,
+  selectTodo,
+  stopEditingTodo,
+} from "../../store/ui-store"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
 import InlineEditInput from "../../ui/inline-edit-input"
 import TaskRowCard from "./task-row-card"
@@ -98,6 +103,13 @@ export default function TaskRow({
         </li>
       }
     >
+      <ContextMenuItem
+        onClick={() => {
+          openTodo(todoId)
+        }}
+      >
+        Open
+      </ContextMenuItem>
       <ContextMenuItem onClick={toggleTodo}>
         {isCompleted ? "Mark incomplete" : "Mark complete"}
       </ContextMenuItem>

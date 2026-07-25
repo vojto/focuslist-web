@@ -21,6 +21,7 @@ export const {
   useCreateIndexes,
   useCreatePersister,
   useCreateStore,
+  useHasRow,
   useIndexes,
   useSliceRowIds,
   useStore,

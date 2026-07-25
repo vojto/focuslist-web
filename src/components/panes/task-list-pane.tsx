@@ -1,3 +1,4 @@
+import { useOpenTodoId } from "../../hooks/use-open-todo"
 import { useIsPaneEditing } from "../../hooks/use-todo-editing"
 import { useCell, useDb } from "../../store/hooks"
 import { createTodoInPane } from "../../store/operations/todos"
@@ -18,6 +19,11 @@ export default function TaskListPane({
   const kind = useCell("lists", listId, "kind")
   const name = useCell("lists", listId, "name")
   const isEditing = useIsPaneEditing(paneId, listId)
+  const openTodoId = useOpenTodoId()
+  // A list pane recedes while a task is being written in: the row's own
+  // inline rename, or the editor that has taken the pane beside it. Same tint
+  // either way, so the two ways of editing a task read as one state.
+  const isTinted = isEditing || openTodoId !== undefined
   const isToday = kind === "today"
   // An unnamed project shows the placeholder title in gray, matching its
   // sidebar row. Today always has its name.
@@ -33,7 +39,7 @@ export default function TaskListPane({
   return (
     <section
       className={`flex h-full min-h-0 min-w-0 flex-col transition-colors duration-100 ${
-        isEditing ? "bg-neutral-50" : "bg-white"
+        isTinted ? "bg-neutral-50" : "bg-white"
       }`}
     >
       <ContextMenu

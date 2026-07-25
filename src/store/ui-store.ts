@@ -9,9 +9,9 @@ import type { ListId, PaneId, TodoId } from "./schema"
 // or column width in a checkpoint to travel back to.
 //
 // Two lifetimes live here. Layout and the open project are the app's chrome
-// and persist under their own key; the selection and edit pairs are session
-// state that simply is not persisted — reopening the app should not restore
-// a highlighted row or a half-typed title.
+// and persist under their own key; the selection, the edit pair and the open
+// task are session state that simply is not persisted — reopening the app
+// should not restore a highlighted row, a half-typed title, or an editor.
 //
 // A todo's selection and edit mode are each an id/pane pair, so two panes can
 // never both claim one; projects need no pane, there being one project list.
@@ -30,6 +30,9 @@ interface UiState {
   editingTodoId: TodoId | undefined
   editingTodoPaneId: PaneId | undefined
   editingProjectId: ListId | undefined
+  // The task the editor is showing, which takes over the Today pane while it
+  // is set. No pane id: there is one editor, and it always opens in that pane.
+  openTodoId: TodoId | undefined
 }
 
 const INITIAL_UI_STATE: UiState = {
@@ -41,6 +44,7 @@ const INITIAL_UI_STATE: UiState = {
   editingTodoId: undefined,
   editingTodoPaneId: undefined,
   editingProjectId: undefined,
+  openTodoId: undefined,
 }
 
 export const useUiStore = create<UiState>()(
@@ -91,6 +95,14 @@ export function stopEditingTodo() {
     editingTodoId: undefined,
     editingTodoPaneId: undefined,
   })
+}
+
+export function openTodo(todoId: TodoId) {
+  useUiStore.setState({ openTodoId: todoId })
+}
+
+export function closeTodo() {
+  useUiStore.setState({ openTodoId: undefined })
 }
 
 export function selectProject(projectId: ListId | undefined) {
