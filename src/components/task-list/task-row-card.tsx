@@ -82,9 +82,6 @@ export default function TaskRowCard({
       >
         <TaskProjectIcon todoId={todoId} />
       </button>
-      {/* Between the icon and the title in both modes: the rename input
-          replaces only the title, so the badge stays put while typing. */}
-      <TaskEstimateBadge isMuted={isCompleted} todoId={todoId} />
       {children ?? (
         <span className={`flex-1 ${titleClass}`}>
           {text}
@@ -99,15 +96,18 @@ export default function TaskRowCard({
           )}
         </span>
       )}
+      {/* Last in both modes: the rename input replaces the title, which is
+          what pushes the estimate to the edge, so it stays put while typing. */}
+      <TaskEstimateBadge isMuted={isCompleted} todoId={todoId} />
     </div>
   )
 }
 
-// What the task is expected to cost. Fixed width whatever it says, so the
-// titles beside it line up down the list, and drawn on every row — an
-// unestimated task gets the dash NO_ESTIMATE draws rather than a hole. A
-// completed one fades with its title: what it was going to cost stopped
-// mattering the moment it was crossed off.
+// What the task is expected to cost, parked at the row's right edge where it
+// reads as a column of its own without taking width from the title. Drawn on
+// every row — an unestimated task gets the dash NO_ESTIMATE draws, which is
+// what says nobody has sized it yet. A completed one fades with its title:
+// what it was going to cost stopped mattering the moment it was crossed off.
 function TaskEstimateBadge({
   isMuted,
   todoId,
@@ -119,7 +119,7 @@ function TaskEstimateBadge({
 
   return (
     <span
-      className={`w-9 shrink-0 text-center font-medium ${estimate.className} ${isMuted ? "opacity-40" : ""}`}
+      className={`shrink-0 font-medium ${estimate.className} ${isMuted ? "opacity-40" : ""}`}
     >
       {estimate.label}
     </span>

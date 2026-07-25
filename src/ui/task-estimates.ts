@@ -8,8 +8,9 @@ interface TaskEstimateOption {
   // durations run green → amber → red so a glance down the list reads as "how
   // hard is this"; the kinds sit off that scale.
   className: string
-  // What the badge prints. Kept to three or four characters, so every badge
-  // is the same width and the titles beside them stay in one column.
+  // What the badge prints. Kept to three or four characters: it sits at the
+  // row's right edge, where a long word would read as a second title and eat
+  // room the real one wants.
   label: string
   // What the menu calls it — the only place the full word appears.
   name: string
