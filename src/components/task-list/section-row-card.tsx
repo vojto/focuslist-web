@@ -7,9 +7,11 @@ import { displayName, SECTION_PLACEHOLDER_NAME } from "../../ui/display-name"
 // reads by id for the same reason, and children replace the label the same
 // way, so the row keeps identical dimensions while its name is being typed.
 //
-// The space above it is what separates one section from the next — no rule,
-// no chip. It also widens the gap a dragged card has to land in to end up
-// under an empty heading, which is the only place that gap is tight.
+// Nothing here may carry a margin. A margin on this card escapes the row's
+// <li> rather than growing it, so the space would sit between rows that the
+// drag reads as touching — placement follows row midlines (see
+// use-task-dnd), and the FLIP pass animates from row positions. Separation
+// is the heading's color; if it ever needs room, that is padding.
 export default function SectionRowCard({
   children,
   isSelected = false,
@@ -32,7 +34,7 @@ export default function SectionRowCard({
 
   return (
     <div
-      className={`mt-6 flex cursor-default select-none items-center rounded-lg px-3 py-1.5 text-sm font-semibold ${
+      className={`flex cursor-default select-none items-center rounded-lg px-3 py-1.5 text-sm font-semibold ${
         isSelected ? "bg-indigo-50" : ""
       }`}
     >
