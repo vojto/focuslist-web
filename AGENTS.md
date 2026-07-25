@@ -30,8 +30,9 @@ code structure, helper extraction, naming, change scope, and verification.
   complete and verifying clean, `git add -A && git commit` it with a
   descriptive message and `git push origin main` — don't wait to be asked.
   Group each logically-cohesive change into its own commit; don't let
-  unrelated edits pile up uncommitted. The exception is work the user is
-  still actively testing or iterating on — hold the commit until it settles.
+  unrelated edits pile up uncommitted. Do not wait for the user to look at
+  the change first — a finished, clean-verifying task gets committed and
+  pushed, and anything they want different afterwards is a follow-up commit.
 - Verify with `npm run build && npm run lint && npx prettier --check .` —
   all must pass clean before committing.
 
