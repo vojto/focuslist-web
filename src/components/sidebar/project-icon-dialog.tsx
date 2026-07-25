@@ -5,7 +5,7 @@ import { X } from "lucide-react"
 import { useCell, useDb } from "../../store/hooks"
 import { setProjectIcon } from "../../store/operations/lists"
 import type { ListId } from "../../store/schema"
-import { DEFAULT_PROJECT_ICON, PROJECT_ICONS } from "./project-icons"
+import { DEFAULT_PROJECT_ICON, PROJECT_ICONS } from "../../ui/project-icons"
 
 // Picking an icon is the whole dialog, so a pick commits it and closes —
 // there is nothing left for an OK button to confirm. A radio group rather

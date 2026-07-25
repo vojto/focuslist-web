@@ -34,7 +34,7 @@ export const TABLES_SCHEMA = {
     name: { type: "string" },
     position: { type: "number" },
     // Which icon the project wears in the sidebar, by the key it has in
-    // sidebar/project-icons.ts. Left undefaulted so a project that has never
+    // ui/project-icons.ts. Left undefaulted so a project that has never
     // been given one has no cell rather than a made-up one, and so the schema
     // does not have to know the catalog: projectIcon() resolves the absence.
     icon: { type: "string" },

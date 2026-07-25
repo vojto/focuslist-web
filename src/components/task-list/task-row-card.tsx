@@ -3,6 +3,7 @@ import type { ReactNode } from "react"
 import { useCell } from "../../store/hooks"
 import type { TodoId } from "../../store/schema"
 import { displayName, TODO_PLACEHOLDER_TITLE } from "../../ui/display-name"
+import { projectIcon } from "../../ui/project-icons"
 import { useTodoCompletion } from "./use-todo-completion"
 
 // The row's visual card, the task-list counterpart of ProjectRowCard. It
@@ -13,8 +14,7 @@ export default function TaskRowCard({
   children,
   isEditing = false,
   isSelected = false,
-  // showProject is temporarily unused while the project badge is commented
-  // out below.
+  showProject = false,
   todoId,
 }: {
   children?: ReactNode
@@ -26,8 +26,14 @@ export default function TaskRowCard({
   const title = useCell("todos", todoId, "title")
   const notes = useCell("todos", todoId, "notes")
   const { isCompleted, toggleTodo } = useTodoCompletion(todoId)
-  // const projectId = useCell("todos", todoId, "projectId")
-  // const projectName = useCell("lists", projectId ?? "", "name")
+  // Where the task came from, worth showing only where it is not already
+  // obvious — the Today pane, which is the one place tasks from different
+  // projects sit together (showProject). A task created straight into Today
+  // belongs to no project and so shows nothing at all rather than a default.
+  const projectId = useCell("todos", todoId, "projectId")
+  const projectIconName = useCell("lists", projectId ?? "", "icon")
+  const hasProjectIcon = showProject && projectId !== undefined
+  const icon = projectIcon(projectIconName)
 
   if (title === undefined) {
     return null
@@ -64,6 +70,12 @@ export default function TaskRowCard({
         onChange={toggleTodo}
         type="checkbox"
       />
+      {hasProjectIcon && (
+        <icon.Icon
+          aria-hidden="true"
+          className="size-3.5 shrink-0 text-neutral-400"
+        />
+      )}
       {children ?? (
         <span className={`flex-1 ${titleClass}`}>
           {text}

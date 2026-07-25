@@ -178,12 +178,16 @@ docs or memory.
   for what is worth committing — an empty or unchanged draft commits
   nothing, so a row can stay untitled. Double-click starts a rename.
 - **A project's icon is a catalog key, not a component.** The `icon` cell on
-  `lists` holds a key from `sidebar/project-icons.ts`, which owns the two
-  dozen icons offered and the rule for resolving one: `projectIcon()` answers
-  with the folder for a project that has no icon _and_ for a key this version
-  has retired, so the sidebar can never draw a hole. Render `option.Icon`
-  from the entry — lifting the component into a local of its own is what the
-  `static-components` lint rule stops. The picker
+  `lists` holds a key from `ui/project-icons.ts`, which — like its neighbour
+  `display-name.ts` — owns both the two dozen icons offered and the rule for
+  resolving one: `projectIcon()` answers with the folder for a project that
+  has no icon _and_ for a key a later version retires, so nothing that draws a
+  project can end up with a hole. Render `option.Icon` straight from the entry;
+  lifting the component into a local of its own is what the
+  `static-components` lint rule stops. Two places draw it: the sidebar row,
+  and a task row in Today (`showProject`, threaded from `task-list-pane.tsx`),
+  where it says which project the task came from — a task created straight
+  into Today has no `projectId` and shows nothing. The picker
   (`sidebar/project-icon-dialog.tsx`, reached by right-clicking a project) is
   the app's one dialog, and it is a dialog because picking from a grid is not
   something a row can do inline; a pick commits and closes, so it needs no OK.

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { projectIcon } from "./project-icons"
+import { projectIcon } from "../../ui/project-icons"
 
 // The row's visual card, the sidebar counterpart of TaskRowCard. Children
 // replace the label (the edit input slots in there) so the row keeps
