@@ -14,10 +14,12 @@ import { displayName, SECTION_PLACEHOLDER_NAME } from "../../ui/display-name"
 // is the heading's color; if it ever needs room, that is padding.
 export default function SectionRowCard({
   children,
+  isEditing = false,
   isSelected = false,
   todoId,
 }: {
   children?: ReactNode
+  isEditing?: boolean
   isSelected?: boolean
   todoId: TodoId
 }) {
@@ -32,11 +34,18 @@ export default function SectionRowCard({
   // all neutral, so the color does the work a rule would.
   const labelClass = isPlaceholder ? "text-blue-300" : "text-blue-600"
 
+  // Lifting off the greyed pane while it is being renamed, on the same terms
+  // as TaskRowCard — a heading is renamed the same way a task is, so it has
+  // to look the same doing it.
+  const cardClass = isEditing
+    ? "bg-white shadow-md transition-[background-color,box-shadow] duration-100"
+    : isSelected
+      ? "bg-indigo-50"
+      : ""
+
   return (
     <div
-      className={`flex cursor-default select-none items-center rounded-lg px-3 py-1.5 text-sm font-semibold ${
-        isSelected ? "bg-indigo-50" : ""
-      }`}
+      className={`flex cursor-default select-none items-center rounded-lg px-3 py-1.5 text-sm font-semibold ${cardClass}`}
     >
       {children ?? <span className={`flex-1 ${labelClass}`}>{text}</span>}
     </div>
