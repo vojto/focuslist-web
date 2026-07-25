@@ -33,6 +33,11 @@ interface UiState {
   // The task the editor is showing, which takes over the Today pane while it
   // is set. No pane id: there is one editor, and it always opens in that pane.
   openTodoId: TodoId | undefined
+  // Where the document stood when that editor opened, so dismissing it can
+  // put the document back. It is a checkpoint id rather than any document
+  // content — the editor is a gesture, and this is the same thing a drag
+  // keeps in a ref (see operations/editor.ts).
+  openTodoCheckpointId: string | undefined
 }
 
 const INITIAL_UI_STATE: UiState = {
@@ -45,6 +50,7 @@ const INITIAL_UI_STATE: UiState = {
   editingTodoPaneId: undefined,
   editingProjectId: undefined,
   openTodoId: undefined,
+  openTodoCheckpointId: undefined,
 }
 
 export const useUiStore = create<UiState>()(
@@ -97,12 +103,21 @@ export function stopEditingTodo() {
   })
 }
 
-export function openTodo(todoId: TodoId) {
-  useUiStore.setState({ openTodoId: todoId })
+// Both halves of the editor move together, so there is never a checkpoint to
+// return to without an editor to return from. What opening and closing *mean*
+// belongs to operations/editor.ts, which is the only caller.
+export function openTodo(todoId: TodoId, checkpointId: string | undefined) {
+  useUiStore.setState({
+    openTodoId: todoId,
+    openTodoCheckpointId: checkpointId,
+  })
 }
 
 export function closeTodo() {
-  useUiStore.setState({ openTodoId: undefined })
+  useUiStore.setState({
+    openTodoId: undefined,
+    openTodoCheckpointId: undefined,
+  })
 }
 
 export function selectProject(projectId: ListId | undefined) {

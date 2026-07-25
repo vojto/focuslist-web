@@ -17,13 +17,17 @@ function isTextEntry(target: EventTarget | null): boolean {
 
 // Whether the focused element already answers to this key itself, in which
 // case the shortcut stands down rather than firing a second action alongside
-// it. Text entry and an open menu take the whole keyboard — every letter is
-// either typing or menu typeahead. A plain control takes only the two keys
-// that activate it, so "c" still makes a task while a button has focus but
-// Enter does not both press the button and open an editor.
+// it. Text entry and an open menu take the keyboard — every letter is either
+// typing or menu typeahead. A plain control takes only the two keys that
+// activate it, so "c" still makes a task while a button has focus but Enter
+// does not both press the button and open an editor.
 function ownsKey(target: EventTarget | null, key: string): boolean {
   if (isTextEntry(target)) {
-    return true
+    // Escape excepted: it ends whatever the field sits inside rather than
+    // typing into it, which is why it works from inside the task editor. A
+    // field that wants Escape for itself claims it at the source — the
+    // inline rename stops the event before it reaches this listener.
+    return key !== "Escape"
   }
   if (!(target instanceof HTMLElement)) {
     return false

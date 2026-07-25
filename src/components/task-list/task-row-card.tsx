@@ -1,3 +1,4 @@
+import { StickyNote } from "lucide-react"
 import type { ReactNode } from "react"
 import { useCell } from "../../store/hooks"
 import type { TodoId } from "../../store/schema"
@@ -23,6 +24,7 @@ export default function TaskRowCard({
   todoId: TodoId
 }) {
   const title = useCell("todos", todoId, "title")
+  const notes = useCell("todos", todoId, "notes")
   const { isCompleted, toggleTodo } = useTodoCompletion(todoId)
   // const projectId = useCell("todos", todoId, "projectId")
   // const projectName = useCell("lists", projectId ?? "", "name")
@@ -32,6 +34,8 @@ export default function TaskRowCard({
   }
 
   const { isPlaceholder, text } = displayName(title, TODO_PLACEHOLDER_TITLE)
+  // Whitespace is not a note: the icon says there is something to read.
+  const hasNotes = (notes ?? "").trim() !== ""
 
   // The transition class rides along only in the editing state, so entering
   // edit mode animates but selection changes snap. It's scoped to
@@ -63,6 +67,15 @@ export default function TaskRowCard({
       {children ?? (
         <span className={`flex-1 ${titleClass}`}>
           {text}
+          {/* Rides inside the title, so the inline rename — which replaces
+              this whole span — takes it off screen for as long as it lasts. */}
+          {hasNotes && (
+            <StickyNote
+              aria-label="Has notes"
+              className="ml-1.5 inline size-3 align-middle text-neutral-400"
+              role="img"
+            />
+          )}
           {/* {showProject && projectName !== undefined && (
             <span className="ml-2 rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
               {projectName}

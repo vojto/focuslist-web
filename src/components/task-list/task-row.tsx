@@ -1,14 +1,10 @@
 import { useIsTodoEditing } from "../../hooks/use-todo-editing"
 import { useIsTodoSelected } from "../../hooks/use-todo-selection"
 import { useCell, useDb } from "../../store/hooks"
+import { openEditor } from "../../store/operations/editor"
 import { deleteTodo, renameTodo } from "../../store/operations/todos"
 import type { ListId, PaneId, TodoId } from "../../store/schema"
-import {
-  editTodo,
-  openTodo,
-  selectTodo,
-  stopEditingTodo,
-} from "../../store/ui-store"
+import { editTodo, selectTodo, stopEditingTodo } from "../../store/ui-store"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
 import InlineEditInput from "../../ui/inline-edit-input"
 import TaskRowCard from "./task-row-card"
@@ -105,7 +101,7 @@ export default function TaskRow({
     >
       <ContextMenuItem
         onClick={() => {
-          openTodo(todoId)
+          openEditor(db, todoId)
         }}
       >
         Open

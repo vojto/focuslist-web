@@ -1,4 +1,5 @@
 import type { Db } from "../store/hooks"
+import { discardEditor } from "../store/operations/editor"
 import {
   activePane,
   moveSelection,
@@ -55,6 +56,12 @@ export const COMMANDS = {
       if (selected !== undefined) {
         deleteTodo(db, selected.todoId)
       }
+    },
+  },
+  "editor.discard": {
+    title: "Discard edits",
+    run: ({ db }) => {
+      discardEditor(db)
     },
   },
   "edit.undo": {

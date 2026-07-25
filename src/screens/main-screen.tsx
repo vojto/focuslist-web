@@ -25,18 +25,20 @@ export default function MainScreen() {
   const projectListId =
     selectedKind === "project" ? selectedProjectId : undefined
 
-  // The task panes in the order they appear on screen, which is what makes
-  // "the pane to the right" meaningful to a keyboard command. A pane showing
-  // something other than a task list is left out: with the editor open there
-  // is no Today list on screen to arrow into or drag onto.
-  const panes: Pane[] = [
-    ...(projectListId === undefined
-      ? []
-      : [{ listId: projectListId, paneId: PROJECT_PANE_ID }]),
-    ...(openTodoId === undefined
-      ? [{ listId: TODAY_LIST_ID, paneId: TODAY_PANE_ID }]
-      : []),
-  ]
+  // What each of the two columns is showing, as a pane or as nothing: a
+  // column showing something other than a task list — no project selected, or
+  // the editor open — has no pane for the keyboard to arrow into or a drag to
+  // land on. What is left is the task panes in the order they appear on
+  // screen, which is what makes "the pane to the right" mean anything.
+  const projectPane: Pane | undefined =
+    projectListId === undefined
+      ? undefined
+      : { listId: projectListId, paneId: PROJECT_PANE_ID }
+  const todayPane: Pane | undefined =
+    openTodoId === undefined
+      ? { listId: TODAY_LIST_ID, paneId: TODAY_PANE_ID }
+      : undefined
+  const panes = [projectPane, todayPane].filter((pane) => pane !== undefined)
   useKeyboard(panes)
 
   const { handleDrag, handleDragEnd, handleDragStart } = useTaskDnd(

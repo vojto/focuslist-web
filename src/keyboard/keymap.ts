@@ -11,6 +11,7 @@ export const KEYMAP: Record<string, CommandId> = {
   Enter: "task.edit",
   Backspace: "task.delete",
   Delete: "task.delete",
+  Escape: "editor.discard",
   "Meta+z": "edit.undo",
   "Meta+Shift+z": "edit.redo",
 }
