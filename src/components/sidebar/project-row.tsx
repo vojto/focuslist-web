@@ -77,7 +77,7 @@ export default function ProjectRow({
         <button
           ref={ref}
           aria-current={isSelected ? "true" : undefined}
-          className="block w-full outline-none data-[dnd-dragging]:rounded-lg data-[dnd-dragging]:bg-white data-[dnd-dragging]:shadow-sm data-[dnd-placeholder]:rounded-lg data-[dnd-placeholder]:bg-neutral-200/60 [&[data-dnd-placeholder]_span]:invisible"
+          className="block w-full outline-none data-[dnd-dragging]:rounded-lg data-[dnd-dragging]:bg-white data-[dnd-dragging]:shadow-sm data-[dnd-placeholder]:rounded-lg data-[dnd-placeholder]:bg-neutral-200/60 [&[data-dnd-placeholder]_:is(span,svg)]:invisible"
           onClick={() => onSelect(projectId)}
           onDoubleClick={handleEdit}
           type="button"
