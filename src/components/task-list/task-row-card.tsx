@@ -24,7 +24,7 @@ export default function TaskRowCard({
 }) {
   const title = useCell("todos", todoId, "title")
   const notes = useCell("todos", todoId, "notes")
-  const { isCompleted, toggleTodo } = useTodoCompletion(todoId)
+  const { isCompleted } = useTodoCompletion(todoId)
 
   if (title === undefined) {
     return null
@@ -53,35 +53,11 @@ export default function TaskRowCard({
   // A completed task's icon fades with its title rather than filling in, the
   // way a checkbox would: the line through the title is what says "done", and
   // the icon is what you aim at to undo it.
-  const iconClass = isCompleted
-    ? "text-neutral-300"
-    : "text-neutral-400 hover:text-neutral-600"
-
   return (
     <div
       className={`flex cursor-default select-none items-center gap-2.5 rounded-lg px-3 py-2 text-sm ${cardClass}`}
     >
-      {/* The project icon is the completion control: clicking it crosses the
-          task off. The negative margin keeps the tap target bigger than the
-          glyph without moving the row's layout.
-
-          The checkbox it replaces, parked while we try this:
-          <input
-            aria-label={`Mark ${text} complete`}
-            checked={isCompleted}
-            className="size-4 shrink-0 appearance-none rounded border border-neutral-300 bg-white bg-cover bg-center bg-no-repeat transition-colors duration-100 checked:border-blue-500 checked:bg-blue-500 checked:bg-checkmark"
-            onChange={toggleTodo}
-            type="checkbox"
-          /> */}
-      <button
-        aria-label={`Mark ${text} complete`}
-        aria-pressed={isCompleted}
-        className={`-m-1 shrink-0 rounded p-1 outline-none transition-colors ${iconClass}`}
-        onClick={toggleTodo}
-        type="button"
-      >
-        <TaskProjectIcon todoId={todoId} />
-      </button>
+      <TaskCompletionControl text={text} todoId={todoId} />
       {children ?? (
         <span className={`flex-1 ${titleClass}`}>
           {text}
@@ -100,6 +76,59 @@ export default function TaskRowCard({
           what pushes the estimate to the edge, so it stays put while typing. */}
       <TaskEstimateBadge isMuted={isCompleted} todoId={todoId} />
     </div>
+  )
+}
+
+// How a task is crossed off, which depends on the list it is showing in. A
+// project list holds only that project's tasks, so which project a row came
+// from is never in question and the control is a plain checkbox. Today mixes
+// tasks from every project, and there the glyph saying where a row came from
+// earns the spot — so it becomes the control itself rather than pushing a
+// checkbox aside. One thing in the row's left column either way.
+//
+// The list is read off the todo rather than passed down: a row only ever
+// renders in the pane showing its list, so the row already knows.
+function TaskCompletionControl({
+  text,
+  todoId,
+}: {
+  text: string
+  todoId: TodoId
+}) {
+  const listId = useCell("todos", todoId, "listId")
+  const kind = useCell("lists", listId ?? "", "kind")
+  const { isCompleted, toggleTodo } = useTodoCompletion(todoId)
+
+  if (kind !== "today") {
+    return (
+      <input
+        aria-label={`Mark ${text} complete`}
+        checked={isCompleted}
+        className="size-4 shrink-0 appearance-none rounded border border-neutral-300 bg-white bg-cover bg-center bg-no-repeat transition-colors duration-100 checked:border-blue-500 checked:bg-blue-500 checked:bg-checkmark"
+        onChange={toggleTodo}
+        type="checkbox"
+      />
+    )
+  }
+
+  // A completed task's icon fades with its title rather than filling in, the
+  // way a checkbox would: the line through the title is what says "done", and
+  // the icon is what you aim at to undo it. The negative margin keeps the tap
+  // target bigger than the glyph without moving the row's layout.
+  const iconClass = isCompleted
+    ? "text-neutral-300"
+    : "text-neutral-400 hover:text-neutral-600"
+
+  return (
+    <button
+      aria-label={`Mark ${text} complete`}
+      aria-pressed={isCompleted}
+      className={`-m-1 shrink-0 rounded p-1 outline-none transition-colors ${iconClass}`}
+      onClick={toggleTodo}
+      type="button"
+    >
+      <TaskProjectIcon todoId={todoId} />
+    </button>
   )
 }
 
@@ -126,10 +155,12 @@ function TaskEstimateBadge({
   )
 }
 
-// Which project a task came from. Every task draws one, because the glyph is
-// also the row's completion control and a row cannot be missing that — a task
-// created straight into Today has no project and gets the default folder.
-// Its own component so resolving it stays out of the card's render.
+// Which project a task came from — drawn only in Today, where rows from
+// different projects sit together and the question is worth answering. Every
+// row there draws one, because the glyph is also the completion control and a
+// row cannot be missing that: a task created straight into Today has no
+// project and gets the default folder. Its own component so resolving it
+// stays out of the control's render.
 function TaskProjectIcon({ todoId }: { todoId: TodoId }) {
   const projectId = useCell("todos", todoId, "projectId")
   const icon = projectIcon(useCell("lists", projectId ?? "", "icon"))
