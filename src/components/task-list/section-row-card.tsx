@@ -26,7 +26,9 @@ export default function SectionRowCard({
   }
 
   const { isPlaceholder, text } = displayName(title, SECTION_PLACEHOLDER_NAME)
-  const labelClass = isPlaceholder ? "text-neutral-300" : "text-neutral-500"
+  // Blue is what separates a heading from the tasks under it — the rows are
+  // all neutral, so the color does the work a rule would.
+  const labelClass = isPlaceholder ? "text-blue-300" : "text-blue-600"
 
   return (
     <div
