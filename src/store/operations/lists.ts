@@ -37,6 +37,14 @@ export function renameProject(db: Db, projectId: ListId, name: string) {
   })
 }
 
+// The name is a key from sidebar/project-icons.ts, not a component: the
+// document stores what the user chose, and the sidebar decides how to draw it.
+export function setProjectIcon(db: Db, projectId: ListId, iconName: string) {
+  asUndoStep(db, "Change project icon", () => {
+    db.store.setCell("lists", projectId, "icon", iconName)
+  })
+}
+
 // Deleting a project removes every todo that belongs to it, including todos
 // currently scheduled onto Today — belonging is exclusive, so they have no
 // other home.
