@@ -37,9 +37,6 @@ export function renameProject(db: Db, projectId: ListId, name: string) {
   })
 }
 
-// The name is a key from ui/project-icons.ts, not a component: the document
-// stores what the user chose, and each place that draws a project — the
-// sidebar row, a task row in Today — decides how big to draw it.
 export function setProjectIcon(db: Db, projectId: ListId, iconName: string) {
   asUndoStep(db, "Change project icon", () => {
     db.store.setCell("lists", projectId, "icon", iconName)

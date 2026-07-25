@@ -1,15 +1,17 @@
 import { Feedback } from "@dnd-kit/dom"
 import { useSortable } from "@dnd-kit/react/sortable"
-import { useState } from "react"
 import { useIsProjectEditing } from "../../hooks/use-project-editing"
 import { useCell, useDb } from "../../store/hooks"
 import { deleteProject, renameProject } from "../../store/operations/lists"
 import type { ListId } from "../../store/schema"
-import { editProject, selectProject } from "../../store/ui-store"
+import {
+  editProject,
+  openIconPicker,
+  selectProject,
+} from "../../store/ui-store"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
 import { displayName, PROJECT_PLACEHOLDER_NAME } from "../../ui/display-name"
 import InlineEditInput from "../../ui/inline-edit-input"
-import ProjectIconDialog from "./project-icon-dialog"
 import ProjectRowCard from "./project-row-card"
 
 export default function ProjectRow({
@@ -28,9 +30,6 @@ export default function ProjectRow({
   const iconName = useCell("lists", projectId, "icon")
   const { isPlaceholder, text } = displayName(name, PROJECT_PLACEHOLDER_NAME)
   const isEditing = useIsProjectEditing(projectId)
-  // Only this row ever opens its own picker, so the dialog's state has no
-  // reason to leave the component.
-  const [isIconDialogOpen, setIsIconDialogOpen] = useState(false)
 
   const { ref } = useSortable({
     id: projectId,
@@ -52,7 +51,7 @@ export default function ProjectRow({
   // the row the app is showing.
   const handleChangeIcon = () => {
     onSelect(projectId)
-    setIsIconDialogOpen(true)
+    openIconPicker(projectId)
   }
 
   const handleDelete = () => {
@@ -89,39 +88,29 @@ export default function ProjectRow({
   }
 
   return (
-    <>
-      <ContextMenu
-        trigger={
-          <button
-            ref={ref}
-            aria-current={isSelected ? "true" : undefined}
-            className="block w-full outline-none data-[dnd-dragging]:rounded-lg data-[dnd-dragging]:bg-white data-[dnd-dragging]:shadow-sm data-[dnd-placeholder]:rounded-lg data-[dnd-placeholder]:bg-neutral-200/60 [&[data-dnd-placeholder]_:is(span,svg)]:invisible"
-            onClick={() => onSelect(projectId)}
-            onDoubleClick={handleEdit}
-            type="button"
-          >
-            <ProjectRowCard
-              iconName={iconName}
-              isPlaceholder={isPlaceholder}
-              isSelected={isSelected}
-              label={text}
-            />
-          </button>
-        }
-      >
-        <ContextMenuItem onClick={handleChangeIcon}>
-          Change Icon…
-        </ContextMenuItem>
-        <ContextMenuItem danger onClick={handleDelete}>
-          Delete
-        </ContextMenuItem>
-      </ContextMenu>
-
-      <ProjectIconDialog
-        isOpen={isIconDialogOpen}
-        onOpenChange={setIsIconDialogOpen}
-        projectId={projectId}
-      />
-    </>
+    <ContextMenu
+      trigger={
+        <button
+          ref={ref}
+          aria-current={isSelected ? "true" : undefined}
+          className="block w-full outline-none data-[dnd-dragging]:rounded-lg data-[dnd-dragging]:bg-white data-[dnd-dragging]:shadow-sm data-[dnd-placeholder]:rounded-lg data-[dnd-placeholder]:bg-neutral-200/60 [&[data-dnd-placeholder]_:is(span,svg)]:invisible"
+          onClick={() => onSelect(projectId)}
+          onDoubleClick={handleEdit}
+          type="button"
+        >
+          <ProjectRowCard
+            iconName={iconName}
+            isPlaceholder={isPlaceholder}
+            isSelected={isSelected}
+            label={text}
+          />
+        </button>
+      }
+    >
+      <ContextMenuItem onClick={handleChangeIcon}>Change Icon…</ContextMenuItem>
+      <ContextMenuItem danger onClick={handleDelete}>
+        Delete
+      </ContextMenuItem>
+    </ContextMenu>
   )
 }

@@ -30,6 +30,10 @@ interface UiState {
   editingTodoId: TodoId | undefined
   editingTodoPaneId: PaneId | undefined
   editingProjectId: ListId | undefined
+  // The project whose icon picker is open, which is also what says the picker
+  // is open at all. One id rather than a flag per row: the picker is a single
+  // modal, and a row cannot own whether it is on screen.
+  iconPickerProjectId: ListId | undefined
   // The task the editor is showing, which takes over the Today pane while it
   // is set. No pane id: there is one editor, and it always opens in that pane.
   openTodoId: TodoId | undefined
@@ -49,6 +53,7 @@ const INITIAL_UI_STATE: UiState = {
   editingTodoId: undefined,
   editingTodoPaneId: undefined,
   editingProjectId: undefined,
+  iconPickerProjectId: undefined,
   openTodoId: undefined,
   openTodoCheckpointId: undefined,
 }
@@ -126,6 +131,12 @@ export function selectProject(projectId: ListId | undefined) {
 
 export function editProject(projectId: ListId | undefined) {
   useUiStore.setState({ editingProjectId: projectId })
+}
+
+// Which project the icon picker is for, and by being set at all, that it is
+// open. Passing undefined closes it.
+export function openIconPicker(projectId: ListId | undefined) {
+  useUiStore.setState({ iconPickerProjectId: projectId })
 }
 
 export function setSidebarWidth(width: number) {

@@ -7,6 +7,7 @@ import { useSelectedProjectId } from "../../hooks/use-selected-project"
 import { reorderProjects } from "../../store/operations/lists"
 import { sealUndoStep } from "../../store/operations/undo"
 import { selectProject } from "../../store/ui-store"
+import ProjectIconDialog from "./project-icon-dialog"
 import ProjectRow from "./project-row"
 
 export default function ProjectList() {
@@ -57,6 +58,9 @@ export default function ProjectList() {
           ))}
         </nav>
       </DragDropProvider>
+
+      {/* One picker for every row, pointed at a project by the store. */}
+      <ProjectIconDialog />
     </section>
   )
 }

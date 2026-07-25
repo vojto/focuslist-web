@@ -26,14 +26,6 @@ export default function TaskRowCard({
   const title = useCell("todos", todoId, "title")
   const notes = useCell("todos", todoId, "notes")
   const { isCompleted, toggleTodo } = useTodoCompletion(todoId)
-  // Where the task came from, worth showing only where it is not already
-  // obvious — the Today pane, which is the one place tasks from different
-  // projects sit together (showProject). A task created straight into Today
-  // belongs to no project and so shows nothing at all rather than a default.
-  const projectId = useCell("todos", todoId, "projectId")
-  const projectIconName = useCell("lists", projectId ?? "", "icon")
-  const hasProjectIcon = showProject && projectId !== undefined
-  const icon = projectIcon(projectIconName)
 
   if (title === undefined) {
     return null
@@ -70,12 +62,7 @@ export default function TaskRowCard({
         onChange={toggleTodo}
         type="checkbox"
       />
-      {hasProjectIcon && (
-        <icon.Icon
-          aria-hidden="true"
-          className="size-3.5 shrink-0 text-neutral-400"
-        />
-      )}
+      {showProject && <TaskProjectIcon todoId={todoId} />}
       {children ?? (
         <span className={`flex-1 ${titleClass}`}>
           {text}
@@ -88,13 +75,29 @@ export default function TaskRowCard({
               role="img"
             />
           )}
-          {/* {showProject && projectName !== undefined && (
-            <span className="ml-2 rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
-              {projectName}
-            </span>
-          )} */}
         </span>
       )}
     </div>
+  )
+}
+
+// Which project a task came from, worth showing only where that is not already
+// obvious — the Today pane, the one place tasks from different projects sit
+// together, which is what showProject means above. Its own component so the
+// panes that don't show it subscribe to nothing: a task created straight into
+// Today belongs to no project and draws nothing at all rather than a default.
+function TaskProjectIcon({ todoId }: { todoId: TodoId }) {
+  const projectId = useCell("todos", todoId, "projectId")
+  const icon = projectIcon(useCell("lists", projectId ?? "", "icon"))
+
+  if (projectId === undefined) {
+    return null
+  }
+
+  return (
+    <icon.Icon
+      aria-hidden="true"
+      className="size-3.5 shrink-0 text-neutral-400"
+    />
   )
 }
