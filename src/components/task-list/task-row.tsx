@@ -7,6 +7,7 @@ import type { ListId, PaneId, TodoId } from "../../store/schema"
 import { editTodo, selectTodo, stopEditingTodo } from "../../store/ui-store"
 import { ContextMenu, ContextMenuItem } from "../../ui/context-menu"
 import InlineEditInput from "../../ui/inline-edit-input"
+import TaskEstimateMenu from "./task-estimate-menu"
 import TaskRowCard from "./task-row-card"
 import { useSortableTaskRow } from "./use-sortable-task-row"
 import { useTodoCompletion } from "./use-todo-completion"
@@ -110,6 +111,7 @@ export default function TaskRow({
       <ContextMenuItem onClick={toggleTodo}>
         {isCompleted ? "Mark incomplete" : "Mark complete"}
       </ContextMenuItem>
+      <TaskEstimateMenu todoId={todoId} />
       <ContextMenuItem
         danger
         onClick={() => {

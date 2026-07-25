@@ -4,6 +4,7 @@ import { useCell } from "../../store/hooks"
 import type { TodoId } from "../../store/schema"
 import { displayName, TODO_PLACEHOLDER_TITLE } from "../../ui/display-name"
 import { projectIcon } from "../../ui/project-icons"
+import { taskEstimate } from "../../ui/task-estimates"
 import { useTodoCompletion } from "./use-todo-completion"
 
 // The row's visual card, the task-list counterpart of ProjectRowCard. It
@@ -81,6 +82,9 @@ export default function TaskRowCard({
       >
         <TaskProjectIcon todoId={todoId} />
       </button>
+      {/* Between the icon and the title in both modes: the rename input
+          replaces only the title, so the badge stays put while typing. */}
+      <TaskEstimateBadge isMuted={isCompleted} todoId={todoId} />
       {children ?? (
         <span className={`flex-1 ${titleClass}`}>
           {text}
@@ -96,6 +100,29 @@ export default function TaskRowCard({
         </span>
       )}
     </div>
+  )
+}
+
+// What the task is expected to cost. Fixed width whatever it says, so the
+// titles beside it line up down the list, and drawn on every row — an
+// unestimated task gets the dash NO_ESTIMATE draws rather than a hole. A
+// completed one fades with its title: what it was going to cost stopped
+// mattering the moment it was crossed off.
+function TaskEstimateBadge({
+  isMuted,
+  todoId,
+}: {
+  isMuted: boolean
+  todoId: TodoId
+}) {
+  const estimate = taskEstimate(useCell("todos", todoId, "estimate"))
+
+  return (
+    <span
+      className={`w-10 shrink-0 rounded px-1 py-0.5 text-center text-[11px] font-medium ${estimate.className} ${isMuted ? "opacity-40" : ""}`}
+    >
+      {estimate.label}
+    </span>
   )
 }
 

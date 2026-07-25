@@ -43,6 +43,10 @@ export const TABLES_SCHEMA = {
     // optional so the schema fills it in for todos written before it existed.
     notes: { type: "string", default: "" },
     isCompleted: { type: "boolean", default: false },
+    // Estimate key from ui/task-estimates.ts. Undefaulted like a project's
+    // icon: a task nobody has estimated has no cell at all, and
+    // taskEstimate() resolves the absence.
+    estimate: { type: "string" },
     listId: { type: "string" },
     position: { type: "number" },
     projectId: { type: "string" },

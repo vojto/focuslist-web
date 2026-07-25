@@ -85,6 +85,19 @@ export function renameTodo(db: Db, todoId: TodoId, title: string) {
   })
 }
 
+// The key of an option in ui/task-estimates.ts, or the empty string for no
+// estimate at all — which is the cell being gone rather than a key that means
+// nothing, so the catalog never needs an entry standing for "unestimated".
+export function setTodoEstimate(db: Db, todoId: TodoId, estimate: string) {
+  asUndoStep(db, "Change estimate", () => {
+    if (estimate === "") {
+      db.store.delCell("todos", todoId, "estimate")
+    } else {
+      db.store.setCell("todos", todoId, "estimate", estimate)
+    }
+  })
+}
+
 export function toggleTodoCompletion(db: Db, todoId: TodoId) {
   asUndoStep(db, "Complete task", () => {
     db.store.setCell(
