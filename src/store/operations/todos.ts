@@ -1,7 +1,11 @@
 import type { Db } from "../hooks"
 import { itemTypeOf } from "../item-type"
 import type { ListId, PaneId, TodoId } from "../schema"
-import { moveSelectionOff, moveSelectionOffSpan } from "./selection"
+import {
+  moveSelectionOff,
+  moveSelectionOffSpan,
+  selectedTodo,
+} from "./selection"
 import { editTodo } from "../ui-store"
 import { asUndoStep } from "./undo"
 
@@ -38,11 +42,12 @@ function insertPosition(
     : (positionOf(db, previousId) + next) / 2
 }
 
-// A new todo starts untitled at the end of the list — the caller drops it
-// straight into inline editing, and an empty title renders as the "New Task"
-// placeholder. Only a pane showing the list can ask for one, so a missing
-// list is a bug rather than a case to handle.
-export function addTodo(db: Db, listId: ListId): TodoId {
+// A new todo starts untitled at `index`, or at the end of the list when no
+// index is given — the caller drops it straight into inline editing, and an
+// empty title renders as the "New Task" placeholder. Only a pane showing the
+// list can ask for one, so a missing list is a bug rather than a case to
+// handle.
+export function addTodo(db: Db, listId: ListId, index?: number): TodoId {
   const kind = db.store.getCell("lists", listId, "kind")
   if (kind === undefined) {
     throw new Error(`Cannot add a todo to unknown list ${listId}`)
@@ -53,7 +58,7 @@ export function addTodo(db: Db, listId: ListId): TodoId {
     title: "",
     isCompleted: false,
     listId,
-    position: insertPosition(db, listId),
+    position: insertPosition(db, listId, index),
     ...(kind === "project" ? { projectId: listId } : {}),
   })
   return id
@@ -101,13 +106,32 @@ export function sectionSpan(db: Db, sectionId: TodoId): readonly TodoId[] {
   ]
 }
 
+// Where a row you ask for lands: directly below the selected row, so one made
+// partway down a list appears where you are looking rather than at the bottom
+// of the list. Selecting a heading puts it first under that heading, which is
+// what "below" means for a row that covers the rows after it.
+//
+// indexOf answers two questions at once — the selection being in another list
+// reads the same as no selection at all, and both mean there is no "here" to
+// insert at, so the row appends.
+function indexBelowSelection(db: Db, listId: ListId): number | undefined {
+  const selected = selectedTodo(db)
+  if (selected === undefined) {
+    return undefined
+  }
+  const index = todoIdsIn(db, listId).indexOf(selected.todoId)
+  return index === -1 ? undefined : index + 1
+}
+
 // Creating a task is always "creating and naming it": one step, so the new
 // row's first render is already in edit mode and no untitled row flashes
 // past. Every entry point — the toolbar, the pane menu, the keyboard — goes
-// through here, which is what keeps them from drifting apart.
+// through here, which is what keeps them from drifting apart, and is why
+// placing it below the selection is a rule of the action rather than of the
+// key that ran it.
 export function createTodoInPane(db: Db, listId: ListId, paneId: PaneId) {
   asUndoStep(db, "New task", () => {
-    editTodo(addTodo(db, listId), paneId)
+    editTodo(addTodo(db, listId, indexBelowSelection(db, listId)), paneId)
   })
 }
 
