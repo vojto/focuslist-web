@@ -95,6 +95,12 @@ export default function ProjectRow({
           aria-current={isSelected ? "true" : undefined}
           className="block w-full outline-none data-[dnd-dragging]:rounded-lg data-[dnd-dragging]:bg-white data-[dnd-dragging]:shadow-sm data-[dnd-placeholder]:rounded-lg data-[dnd-placeholder]:bg-neutral-200/60 [&[data-dnd-placeholder]_:is(span,svg)]:invisible"
           onClick={() => onSelect(projectId)}
+          // The sidebar behind us opens its own menu on background
+          // right-clicks; keep row right-clicks from reaching it so only the
+          // row menu opens.
+          onContextMenu={(event) => {
+            event.stopPropagation()
+          }}
           onDoubleClick={handleEdit}
           type="button"
         >
