@@ -105,11 +105,21 @@ function TaskCompletionControl({
   const { isCompleted, toggleTodo } = useTodoCompletion(todoId)
 
   if (kind !== "today" || projectId === undefined) {
+    // Reaching here with a Today list means the task has no project, so this
+    // checkbox is sitting in the same column as other rows' project glyphs.
+    // Those fade to grey when completed rather than filling in, so this one
+    // does too: the box stays empty and only its tick greys in. In a project
+    // list nothing shares that column, and the checkbox fills in as usual.
+    const checkedClass =
+      kind === "today"
+        ? "checked:bg-transparent checked:bg-checkmark-muted"
+        : "checked:border-blue-500 checked:bg-blue-500 checked:bg-checkmark"
+
     return (
       <input
         aria-label={`Mark ${text} complete`}
         checked={isCompleted}
-        className="size-4 shrink-0 appearance-none rounded border border-neutral-300 bg-white bg-cover bg-center bg-no-repeat transition-colors duration-100 checked:border-blue-500 checked:bg-blue-500 checked:bg-checkmark"
+        className={`size-4 shrink-0 appearance-none rounded border border-neutral-300 bg-white bg-cover bg-center bg-no-repeat transition-colors duration-100 ${checkedClass}`}
         onChange={toggleTodo}
         type="checkbox"
       />
